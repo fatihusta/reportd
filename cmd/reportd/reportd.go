@@ -19,6 +19,7 @@ func main() {
 	if err != nil {
 		logger.Warn("Unable to setup ZMQ sockets.")
 	}
+	defer socket.Close()
 
 	go eventListener(socket)
 
@@ -82,8 +83,6 @@ func setupZmqSocket() (soc *zmq.Socket, err error) {
 		logger.Err("Unable to open ZMQ socket... %s\n", err)
 		return nil, err
 	}
-
-	defer subscriber.Close()
 
 	subscriber.Connect("tcp://localhost:5561")
 	subscriber.SetSubscribe("packetd-events")
