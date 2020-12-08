@@ -49,17 +49,28 @@ func eventListener(soc *zmq.Socket) {
 	logger.Info("Starting up a theoretical goroutine for event listening...\n")
 	defer startFinishRoutineThread()
 
-	for start := time.Now(); time.Since(start) > 30*time.Second; {
-		msg, err := soc.RecvMessage(0)
-		if err != nil {
-			logger.Warn("Unable to receive messages: %s...\n", err)
-			break
+	timeout := time.After(5 * time.Second)
+	tick := time.Tick(500 * time.Millisecond)
+
+	for {
+		select {
+		case <-timeout:
+			logger.Warn("eventListener timed out! \n")
+			return
+		case <-tick:
+
+			logger.Info("Listening for messages\n")
+
+			msg, err := soc.RecvMessage(0)
+			if err != nil {
+				logger.Warn("Unable to receive messages: %s\n", err)
+				return
+			}
+
+			logger.Info("Got some data here, topic: %s, message: %s\n", msg[0], msg[1])
+
 		}
-
-		logger.Info("Got some data here, topic: %s, message: %s\n", msg[0], msg[1])
 	}
-
-	logger.Info("Shutting down eventListener goroutine...\n")
 }
 
 // eventLogger is used to log events to the database
@@ -68,7 +79,20 @@ func eventLogger() {
 	defer startFinishRoutineThread()
 
 	logger.Info("Starting up a theoretical goroutine for event logging...\n")
-	time.Sleep(30 * time.Second)
+
+	timeout := time.After(5 * time.Second)
+	tick := time.Tick(500 * time.Millisecond)
+
+	for {
+		select {
+		case <-timeout:
+			logger.Warn("event Logger timed out! \n")
+			return
+		case <-tick:
+			logger.Info("Reading messages from event queue...")
+		}
+	}
+
 }
 
 // startFinishRoutineThread is a function to simplify how we can defer calling finishRoutine() at the top of a function,
