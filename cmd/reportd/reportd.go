@@ -44,7 +44,7 @@ func eventListener(soc *zmq.Socket) {
 	logger.Info("Starting up a theoretical goroutine for event listening...\n")
 	defer startFinishRoutineThread()
 
-	for {
+	for start := time.Now(); time.Since(start) > 30*time.Second; {
 		msg, err := soc.RecvMessage(0)
 		if err != nil {
 			logger.Warn("Unable to receive messages: %s...\n", err)
