@@ -11,7 +11,7 @@ RUN echo "deb http://foo:foo@updates.untangle.com/public/stretch 14.1.1 main non
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 735A9E18E8F62EDF413592460B9D6AE3627BF103
 RUN apt-get update -q
 
-RUN apt-get install -y libzmq-dev
+RUN apt-get install -y libzmq3-dev
 
 RUN mkdir -p /go/reportd
 VOLUME /go/reportd
