@@ -12,8 +12,12 @@ var routineWatcher = make(chan int)
 
 // main is the entrypoint of reportd
 func main() {
+
+	logger.Startup()
+
 	logger.Info("Starting up reportd...\n")
 
+	logger.Info("Setting up zmq listening socket...\n")
 	socket, err := setupZmqSocket()
 
 	if err != nil {
@@ -21,6 +25,7 @@ func main() {
 	}
 	defer socket.Close()
 
+	logger.Info("Setting up event listener on zmq socket...\n")
 	go eventListener(socket)
 
 	go eventLogger()
@@ -53,6 +58,8 @@ func eventListener(soc *zmq.Socket) {
 
 		logger.Info("Got some data here, topic: %s, message: %s\n", msg[0], msg[1])
 	}
+
+	logger.Info("Shutting down eventListener goroutine...\n")
 }
 
 // eventLogger is used to log events to the database
