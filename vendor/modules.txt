@@ -1,3 +1,5 @@
+# github.com/pebbe/zmq4 v1.2.2
+github.com/pebbe/zmq4
 # github.com/untangle/packetd v0.1.2
 github.com/untangle/packetd/services/logger
 github.com/untangle/packetd/services/overseer
