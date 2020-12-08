@@ -33,6 +33,9 @@ func main() {
 	}
 	defer socket.Close()
 
+	logger.Info("Setting up a debug publisher thread...\n")
+	go debugPublisher()
+
 	logger.Info("Setting up event listener on zmq socket...\n")
 	go eventListener(socket)
 
@@ -164,3 +167,18 @@ func dumpStack() {
 	logger.Warn("Thread dump complete.\n")
 }
 
+//  The publisher sends random messages starting with A-J:
+//  This is a debug thread taken from https://github.com/pebbe/zmq4/blob/master/examples/espresso.go
+func debugPublisher() {
+	publisher, _ := zmq.NewSocket(zmq.PUB)
+	publisher.Bind("tcp://*:5561")
+
+	for {
+		s := fmt.Sprintf("%c-%05d", rand.Intn(10)+'A', rand.Intn(100000))
+		_, err := publisher.SendMessage("untangle:packetd:events", s)
+		if err != nil {
+			break //  Interrupted
+		}
+		time.Sleep(100 * time.Millisecond) //  Wait for 1/10th second
+	}
+}
