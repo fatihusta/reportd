@@ -1,0 +1,29 @@
+version: '2'
+services:
+    musl:
+      image: untangleinc/packetd:build-musl
+      volumes:
+        - ..:/go/reportd
+
+    glibc:
+      image: untangleinc/packetd:build-glibc
+      volumes:
+        - ..:/go/reportd
+
+    # the next 2 services allow for local changes and tests to the
+    # docker images, before pushing new official ones to GitHub: the
+    # build images are being built locally
+
+    musl-local:
+      build:
+        context: .
+        dockerfile: Dockerfile.build-musl
+      volumes:
+        - ..:/go/reportd
+
+    glibc-local:
+      build:
+        context: .
+        dockerfile: Dockerfile.build-glibc
+      volumes:
+        - ..:/go/reportd

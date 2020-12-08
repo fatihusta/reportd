@@ -1,0 +1,22 @@
+FROM golang:1.12.1-alpine3.9
+LABEL maintainer="Sebastien Delafond <sdelafond@gmail.com>"
+
+RUN apk update
+RUN apk add --update gcc musl-dev
+
+# build deps for libnetfilter_queue
+RUN apk add libnfnetlink-dev
+RUN apk add libmnl-dev
+RUN apk add linux-headers
+RUN apk add make
+RUN apk add autoconf
+RUN apk add automake
+RUN apk add libtool
+RUN apk add git
+RUN apk add zeromq-dev
+
+# build reportd
+RUN mkdir -p /go/reportd
+VOLUME /go/reportd
+WORKDIR /go/reportd
+CMD make
