@@ -127,7 +127,7 @@ func setupZmqSocket() (soc *zmq.Socket, err error) {
 	}
 
 	subscriber.Connect("tcp://localhost:5561")
-	subscriber.SetSubscribe("packetd-events")
+	subscriber.SetSubscribe("untangle:packetd:events")
 
 	return subscriber, nil
 }
