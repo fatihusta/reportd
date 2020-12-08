@@ -4,10 +4,6 @@ LABEL maintainer="Sebastien Delafond <sdelafond@gmail.com>"
 RUN apk update
 RUN apk add --update gcc musl-dev
 
-# build deps for libnetfilter_queue
-RUN apk add libnfnetlink-dev
-RUN apk add libmnl-dev
-RUN apk add linux-headers
 RUN apk add make
 RUN apk add autoconf
 RUN apk add automake
