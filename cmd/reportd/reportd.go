@@ -1,7 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
+	"math/rand"
 	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
 	"time"
 
 	zmq "github.com/pebbe/zmq4"
@@ -16,6 +22,8 @@ func main() {
 	logger.Startup()
 
 	logger.Info("Starting up reportd...\n")
+
+	handleSignals()
 
 	logger.Info("Setting up zmq listening socket...\n")
 	socket, err := setupZmqSocket()
@@ -120,3 +128,39 @@ func setupZmqSocket() (soc *zmq.Socket, err error) {
 
 	return subscriber, nil
 }
+
+// Add signal handlers
+func handleSignals() {
+	// Add SIGINT & SIGTERM handler (exit)
+	termch := make(chan os.Signal, 1)
+	signal.Notify(termch, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-termch
+		go func() {
+			logger.Warn("Received signal [%v]. Shutting down routines...\n", sig)
+			os.Exit(0)
+		}()
+	}()
+
+	// Add SIGQUIT handler (dump thread stack trace)
+	quitch := make(chan os.Signal, 1)
+	signal.Notify(quitch, syscall.SIGQUIT)
+	go func() {
+		for {
+			sig := <-quitch
+			logger.Info("Received signal [%v]. Calling dumpStack()\n", sig)
+			go dumpStack()
+		}
+	}()
+}
+
+// dumpStack to /tmp/reportd.stack and log
+func dumpStack() {
+	buf := make([]byte, 1<<20)
+	stacklen := runtime.Stack(buf, true)
+	ioutil.WriteFile("/tmp/reportd.stack", buf[:stacklen], 0644)
+	logger.Warn("Printing Thread Dump...\n")
+	logger.Warn("\n\n%s\n\n", buf[:stacklen])
+	logger.Warn("Thread dump complete.\n")
+}
+
