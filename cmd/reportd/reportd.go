@@ -33,9 +33,6 @@ func main() {
 	}
 	defer socket.Close()
 
-	logger.Info("Setting up a debug publisher thread...\n")
-	go debugPublisher()
-
 	logger.Info("Setting up event listener on zmq socket...\n")
 	go eventListener(socket)
 
