@@ -1,8 +1,8 @@
 package reports
 
 import (
+	"github.com/jsommerville-untangle/golang-shared/services/logger"
 	zmq "github.com/pebbe/zmq4"
-	"github.com/untangle/packetd/services/logger"
 	"github.com/untangle/reportd/services/monitor"
 )
 

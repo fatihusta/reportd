@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/untangle/packetd/services/overseer"
+	"../overseer"
 )
 
 const logConfigFile = "/tmp/logconfig.js"

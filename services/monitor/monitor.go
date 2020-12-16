@@ -3,7 +3,7 @@ package monitor
 import (
 	"os"
 
-	"github.com/untangle/packetd/services/logger"
+	"github.com/jsommerville-untangle/golang-shared/services/logger"
 )
 
 var routineWatcher = make(chan int)
