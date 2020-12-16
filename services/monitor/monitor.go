@@ -8,15 +8,17 @@ import (
 
 var routineWatcher = make(chan int)
 
+// Startup is called to startup the monitor service
 func Startup() {
 	routineWatcher = make(chan int)
 }
 
+// StartRoutine is used when initializing a new goroutine and adding monitoring to that routine
 func StartRoutine() {
 	routineWatcher <- +1
 }
 
-// startFinishRoutineThread is a function to simplify how we can defer calling finishRoutine() at the top of a function,
+// StartFinishRoutineThread is a function to simplify how we can defer calling finishRoutine() at the top of a function,
 // instead of having to always call it at the end of a routine
 func StartFinishRoutineThread() {
 	go finishRoutine()
@@ -27,6 +29,7 @@ func finishRoutine() {
 	routineWatcher <- -1
 }
 
+// Shutdown is called to close all running routines
 func Shutdown() {
 	logger.Info("Waiting for all routines to finish...\n")
 

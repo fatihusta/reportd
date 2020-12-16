@@ -2,10 +2,13 @@ package reports
 
 import (
 	"github.com/jsommerville-untangle/golang-shared/services/logger"
+	pbe "github.com/jsommerville-untangle/golang-shared/structs/ProtoBuffEvent"
 	zmq "github.com/pebbe/zmq4"
 	"github.com/untangle/reportd/services/monitor"
+	"google.golang.org/protobuf/proto"
 )
 
+// Startup is used to startup the reports service
 func Startup() {
 	logger.Info("Setting up zmq listening socket...\n")
 	socket, err := setupZmqSocket()
@@ -19,6 +22,7 @@ func Startup() {
 	go eventListener(socket)
 }
 
+// Shutdown is used to shutdown the reports service
 func Shutdown() {
 
 }
@@ -31,14 +35,18 @@ func eventListener(soc *zmq.Socket) {
 
 	for {
 
-		msg, err := soc.RecvMessage(0)
+		msg, err := soc.RecvMessageBytes(0)
 
 		if err != nil {
 			logger.Warn("Unable to receive messages: %s\n", err)
 			return
 		}
 
-		logger.Info("Got some data here, topic: %s, message: %s\n", msg[0], msg[1])
+
+		newEvt := &pbe.ProtoBuffEvent{}
+		if err := proto.Unmarshal(msg[1], newEvt); err != nil {
+			logger.Warn("Unable to parse message: %s\n", err)
+		}
 		// Drop this into the event queue for processing
 
 	}
