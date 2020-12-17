@@ -1,4 +1,4 @@
-version: '2'
+version: '3.8'
 services:
     musl:
       image: untangleinc/packetd:build-musl
@@ -15,6 +15,7 @@ services:
     # build images are being built locally
 
     musl-local:
+      user: ${UID_GID}
       build:
         context: .
         dockerfile: Dockerfile.build-musl
@@ -22,6 +23,7 @@ services:
         - ..:/go/reportd
 
     glibc-local:
+      user: ${UID_GID}
       build:
         context: .
         dockerfile: Dockerfile.build-glibc
