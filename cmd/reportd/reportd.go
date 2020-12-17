@@ -1,4 +1,4 @@
-package reportd
+package main
 
 import (
 	"fmt"
