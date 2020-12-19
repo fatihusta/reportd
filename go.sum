@@ -7,9 +7,12 @@ github.com/golang/protobuf v1.4.3 h1:JjCZWpVbqXDqFVmTfYWEVTMIYrL/NPdPSCHPJ0T/raM
 github.com/golang/protobuf v1.4.3/go.mod h1:oDoupMAO8OvCJWAcko0GGGIgR6R6ocIYbsSw735rRwI=
 github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
+github.com/google/go-cmp v0.4.0 h1:xsAVV57WRhGj6kEIi8ReJzQlHHqcBYCElAvkovg3B/4=
 github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/jsommerville-untangle/golang-shared v0.0.0-20201217001014-bd21309fb0b1 h1:Bz6eQHrm6VFwqZJvKKj5JS92r0je1c7Q0Jsf7OE7zek=
 github.com/jsommerville-untangle/golang-shared v0.0.0-20201217001014-bd21309fb0b1/go.mod h1:Uy1A99vjiHkcvTTWLx8dUqGDYvJpds9J5sRcSNLHPPc=
+github.com/mattn/go-sqlite3 v1.14.5 h1:1IdxlwTNazvbKJQSxoJ5/9ECbEeaTTyeU7sEAZ5KKTQ=
+github.com/mattn/go-sqlite3 v1.14.5/go.mod h1:WVKg1VTActs4Qso6iwGbiFih2UIHo0ENGwNd0Lj+XmI=
 github.com/pebbe/zmq4 v1.2.2 h1:RZ5Ogp0D5S6u+tSxopnI3afAf0ifWbvQOAw9HxXvZP4=
 github.com/pebbe/zmq4 v1.2.2/go.mod h1:7N4y5R18zBiu3l0vajMUWQgZyjv464prE8RCyBcmnZM=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 h1:E7g+9GITq07hpfrRu66IVDexMakfv52eLZ2CXBWiKr4=
