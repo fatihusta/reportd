@@ -7,26 +7,55 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/jsommerville-untangle/golang-shared/services/logger"
 	zmq "github.com/pebbe/zmq4"
+	"github.com/untangle/reportd/services/localreporting"
+	"github.com/untangle/reportd/services/messenger"
 	"github.com/untangle/reportd/services/monitor"
-	"github.com/untangle/reportd/services/reports"
 )
+
+var shutdownFlag uint32
+var shutdownChannel = make(chan bool)
 
 // main is the entrypoint of reportd
 func main() {
 	logger.Startup()
 	logger.Info("Starting up reportd...\n")
 
-	monitor.Startup()
+	startServices()
 
 	handleSignals()
-	reports.Startup()
 
+	// Loop unless we get a shutdown flag or the shutdown channel is signaled
+	for !GetShutdownFlag() {
+		select {
+		case <-shutdownChannel:
+			logger.Info("Shutdown channel initiated... %v\n", GetShutdownFlag())
+			break
+		case <-time.After(1 * time.Minute):
+			logger.Info("\n")
+			printStats()
+		}
+	}
+
+	logger.Info("Shutting down reportd...\n")
+
+	messenger.Shutdown()
+	localreporting.Shutdown()
 	monitor.Shutdown()
+	logger.Shutdown()
+
+}
+
+func startServices() {
+	monitor.Startup()
+	localreporting.Startup()
+	messenger.Startup()
+
 }
 
 // Add signal handlers
@@ -38,7 +67,7 @@ func handleSignals() {
 		sig := <-termch
 		go func() {
 			logger.Warn("Received signal [%v]. Shutting down routines...\n", sig)
-			os.Exit(0)
+			SetShutdownFlag()
 		}()
 	}()
 
@@ -78,4 +107,29 @@ func debugPublisher() {
 		}
 		time.Sleep(100 * time.Millisecond) //  Wait for 1/10th second
 	}
+}
+
+// prints some basic stats about packetd
+func printStats() {
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	logger.Info("Memory Stats:\n")
+	logger.Info("Memory Alloc: %d kB\n", (mem.Alloc / 1024))
+	logger.Info("Memory TotalAlloc: %d kB\n", (mem.TotalAlloc / 1024))
+	logger.Info("Memory HeapAlloc: %d kB\n", (mem.HeapAlloc / 1024))
+	logger.Info("Memory HeapSys: %d kB\n", (mem.HeapSys / 1024))
+}
+
+// GetShutdownFlag returns the shutdown flag for kernel
+func GetShutdownFlag() bool {
+	if atomic.LoadUint32(&shutdownFlag) != 0 {
+		return true
+	}
+	return false
+}
+
+// SetShutdownFlag sets the shutdown flag for kernel
+func SetShutdownFlag() {
+	shutdownChannel <- true
+	atomic.StoreUint32(&shutdownFlag, 1)
 }
