@@ -35,7 +35,7 @@ func Shutdown() {
 func sessionListener(soc *zmq.Socket) {
 	var rtName = "session_listener"
 	monitor.RoutineStarted(rtName)
-	//defer monitor.RoutineEnd(rtName)
+	defer monitor.RoutineEnd(rtName)
 	defer soc.Close()
 
 	for {

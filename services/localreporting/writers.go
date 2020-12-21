@@ -15,20 +15,21 @@ import (
 func queueWriter(queueType string, stmt *sql.Stmt, queue chan *[]interface{}) {
 	var rtName string = queueType + "_queue_routine"
 	monitor.RoutineStarted(rtName)
-	//defer monitor.RoutineEnd(rtName)
+	defer monitor.RoutineEnd(rtName)
 
-	select {
-	case <-serviceShutdown:
-		logger.Info("Stopping queue writer %s\n", rtName)
-		return
-	case queueItem := <-queue:
-		if logger.IsTraceEnabled() {
-			logger.Trace("%s: %v\n", queueType, queueItem)
+	for {
+		select {
+		case <-serviceShutdown:
+			logger.Info("Stopping queue writer %s\n", rtName)
+			return
+		case queueItem := <-queue:
+			if logger.IsTraceEnabled() {
+				logger.Trace("%s: %v\n", queueType, queueItem)
+			}
+
+			stmt.Exec(*queueItem...)
 		}
-
-		stmt.Exec(*queueItem...)
 	}
-
 }
 
 // sessWriter reads the Session event queue and writes the appropriate data
@@ -41,41 +42,50 @@ func sessWriter(dbConn *sql.DB) {
 	const waitTime = 60.0
 	var rtName string = "session_write_queue_routine"
 	monitor.RoutineStarted(rtName)
-	//defer monitor.RoutineEnd(rtName)
+	defer monitor.RoutineEnd(rtName)
 
-	select {
-	// read data out of the eventQueue into the eventBatch
-	case sess := <-sessionsChannel:
-		logger.Info("Got some stuff in the queue!\n")
-		sessionBatch = append(sessionBatch, *sess)
-		retry := false
+	for {
+		select {
+		case <-serviceShutdown:
+			logger.Info("Shutting down session writer\n")
+			return
+		// read data out of the eventQueue into the eventBatch
+		case sess := <-sessionsChannel:
+			sessionBatch = append(sessionBatch, *sess)
+			retry := false
 
-		// when the batch is larger than the configured batch insert size OR we haven't inserted anything in one minute, we need to insert some stuff
-		batchCount := len(sessionBatch)
-		if batchCount >= eventBatchSize || time.Since(lastInsert).Seconds() > waitTime {
-			sessionBatch, lastInsert, retry = batchTransaction(dbConn, sessionBatch, batchCount)
-			if retry {
-				retryBatch <- true
+			// when the batch is larger than the configured batch insert size OR we haven't inserted anything in one minute, we need to insert some stuff
+			batchCount := len(sessionBatch)
+			if batchCount >= eventBatchSize || time.Since(lastInsert).Seconds() > waitTime {
+				logger.Info("Starting a batch...\n")
+				sessionBatch, lastInsert, retry = batchTransaction(dbConn, sessionBatch, batchCount)
+				if retry {
+					retryBatch <- true
+				}
 			}
-		}
-	// If the channel hasn't had any data in eventLoggerInterval, commit any remaining batch items to DB
-	case <-time.After(eventLoggerInterval):
-		logger.Debug("No events seen for eventLogger\n")
-		retry := false
+		// If the channel hasn't had any data in eventLoggerInterval, commit any remaining batch items to DB
+		case <-time.After(eventLoggerInterval):
+			logger.Debug("No events seen for eventLogger\n")
+			retry := false
 
-		if sessionBatch != nil {
+			if sessionBatch != nil {
+				logger.Info("Starting a batch with some remaining stuff..\n")
+
+				batchCount := len(sessionBatch)
+				sessionBatch, lastInsert, retry = batchTransaction(dbConn, sessionBatch, batchCount)
+				if retry {
+					retryBatch <- true
+				}
+			}
+		case <-retryBatch:
+			logger.Info("Retrying a batch...")
+
+			retry := false
 			batchCount := len(sessionBatch)
 			sessionBatch, lastInsert, retry = batchTransaction(dbConn, sessionBatch, batchCount)
 			if retry {
 				retryBatch <- true
 			}
-		}
-	case <-retryBatch:
-		retry := false
-		batchCount := len(sessionBatch)
-		sessionBatch, lastInsert, retry = batchTransaction(dbConn, sessionBatch, batchCount)
-		if retry {
-			retryBatch <- true
 		}
 	}
 
@@ -126,8 +136,6 @@ func eventToTransaction(event pbe.ProtoBuffEvent, tx *sql.Tx) error {
 	var sqlStr string
 	var values []interface{}
 	var first = true
-
-	logger.Info(event.String())
 
 	// sqlOP 1 is an INSERT
 	if event.SQLOp == 1 {

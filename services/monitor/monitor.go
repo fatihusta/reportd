@@ -86,19 +86,20 @@ func Shutdown() {
 func monitorRoutineEvents() {
 
 	// Read the routineInfoWatcher channel for any Error types
-	select {
-	case <-serviceShutdown:
-		logger.Info("Stopping routine monitor\n")
-		return
-	case rtEvt := <-routineInfoWatcher:
-		if rtEvt.Action == err {
-			logger.Info("Acting on this event: %v\n", rtEvt)
-			handleRoutineWatcherEvents()
+	for {
+		select {
+		case <-serviceShutdown:
+			logger.Info("Stopping routine monitor\n")
+			return
+		case rtEvt := <-routineInfoWatcher:
+			if rtEvt.Action == err {
+				logger.Info("Acting on this event: %v\n", rtEvt)
+				handleRoutineWatcherEvents()
+			}
+		case <-time.Tick(60 * time.Hour):
+			logger.Info("There are %v monitored routines.\n", len(activeRoutines))
 		}
-	case <-time.Tick(60 * time.Second):
-		logger.Info("There are %v monitored routines.\n", len(activeRoutines))
 	}
-
 }
 
 // handleRoutineWatcherEvents is used to signal specific patterns to other routines

@@ -15,7 +15,7 @@ import (
 func setupDatabase() {
 	var rtName = "setup_database"
 	monitor.RoutineStarted(rtName)
-	//defer monitor.RoutineEnd(rtName)
+	defer monitor.RoutineEnd(rtName)
 	// Currently these are static, but could be pulled from settings?
 	dbPath := "/tmp"
 	dbFileName := "reports.db"
