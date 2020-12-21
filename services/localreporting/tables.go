@@ -432,13 +432,13 @@ func tableCleaner(dbConn *sql.DB, sizeLimit int64) {
 				//monitor.RoutineError(rtName)
 			}
 
-			trimPercent("session_stats", .10, tx)
+			err = trimPercent("session_stats", .10, tx)
 			if err != nil {
 				logger.Warn("Failed to trim session_stats: %s\n", err.Error())
 				//monitor.RoutineError(rtName)
 			}
 
-			trimPercent("interface_stats", .10, tx)
+			err = trimPercent("interface_stats", .10, tx)
 			if err != nil {
 				logger.Warn("Failed to trim interface_stats: %s\n", err.Error())
 				//monitor.RoutineError(rtName)
