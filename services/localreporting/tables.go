@@ -400,7 +400,7 @@ func tableCleaner(ctx context.Context, dbConn *sql.DB, sizeLimit int64) {
 			logger.Info("Stopping table cleaner\n")
 			return
 		case <-ch:
-		case <-time.After(10 * time.Second):
+		case <-time.After(60 * time.Second):
 		}
 
 		currentSize, pageSize, pageCount, maxPageCount, freeCount, err := loadDbStats(dbConn)
