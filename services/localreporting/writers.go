@@ -1,6 +1,7 @@
 package localreporting
 
 import (
+	"context"
 	"database/sql"
 	"net"
 	"time"
@@ -12,43 +13,39 @@ import (
 )
 
 // queueWriter reads a queue channel and writes data using the sql statement pointer passed in
-func queueWriter(queueType string, stmt *sql.Stmt, queue chan *[]interface{}) {
-	var rtName string = queueType + "_queue_routine"
-	monitor.RoutineStarted(rtName)
-	defer monitor.RoutineEnd(rtName)
+func queueWriter(ctx context.Context, queueType string, stmt *sql.Stmt, queue chan *[]interface{}) {
+	monitor.RoutineStarted(queueType)
+	defer monitor.RoutineEnd(queueType)
 
 	for {
 		select {
-		case <-serviceShutdown:
-			logger.Info("Stopping queue writer %s\n", rtName)
-			return
 		case queueItem := <-queue:
 			if logger.IsTraceEnabled() {
 				logger.Trace("%s: %v\n", queueType, queueItem)
 			}
 
 			stmt.Exec(*queueItem...)
+		case <-ctx.Done():
+			logger.Info("Stopping queue writer: %s \n", queueType)
+			return
 		}
 	}
 }
 
 // sessWriter reads the Session event queue and writes the appropriate data
-func sessWriter(dbConn *sql.DB) {
+func sessWriter(ctx context.Context, dbConn *sql.DB) {
 	var sessionBatch []pbe.ProtoBuffEvent
 	var lastInsert time.Time
 	var retryBatch = make(chan bool, 1)
 	const eventLoggerInterval = 10 * time.Second
 	const eventBatchSize = 1000
 	const waitTime = 60.0
-	var rtName string = "session_write_queue_routine"
+	var rtName string = "session_processor"
 	monitor.RoutineStarted(rtName)
 	defer monitor.RoutineEnd(rtName)
 
 	for {
 		select {
-		case <-serviceShutdown:
-			logger.Info("Shutting down session writer\n")
-			return
 		// read data out of the eventQueue into the eventBatch
 		case sess := <-sessionsChannel:
 			sessionBatch = append(sessionBatch, *sess)
@@ -86,6 +83,9 @@ func sessWriter(dbConn *sql.DB) {
 			if retry {
 				retryBatch <- true
 			}
+		case <-ctx.Done():
+			logger.Info("Stopping queue writer: %s\n", rtName)
+			return
 		}
 	}
 

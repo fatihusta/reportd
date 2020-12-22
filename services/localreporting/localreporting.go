@@ -1,30 +1,33 @@
 package localreporting
 
 import (
+	"context"
+
 	"github.com/jsommerville-untangle/golang-shared/services/logger"
 	pbe "github.com/jsommerville-untangle/golang-shared/structs/ProtoBuffEvent"
+	"github.com/untangle/reportd/services/monitor"
 )
 
-// Channel to signal all report go routines to stop
-var serviceShutdown = make(chan bool, 1)
 var interfaceStatsChannel = make(chan *[]interface{}, 1000)
 var sessionStatsChannel = make(chan *[]interface{}, 5000)
 var sessionsChannel = make(chan *pbe.ProtoBuffEvent, 10000)
+var contextRelation = monitor.RoutineContextGroup{}
 
 // Startup is used to startup the localreporting service
 func Startup() {
 
 	createReceiverChannels()
+	var relatedRoutines = []string{"table_cleaner", "interface_stats_processor", "session_stats_processor", "session_processor"}
+	contextRelation = monitor.CreateRoutineContextRelation(context.Background(), "localreporting", relatedRoutines)
 
-	go setupDatabase()
+	go setupDatabase(contextRelation)
 
 }
 
 // Shutdown is used to shutdown the reports service
 func Shutdown() {
-	logger.Info("Sending service shutdown channel to report routines...")
-	serviceShutdown <- true
-
+	logger.Info("Shutting down local reporting service...\n")
+	monitor.CancelContexts(contextRelation)
 }
 
 // createReceiverChannels builds (or rebuilds) the channels used for receiving and writing event data

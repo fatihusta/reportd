@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -44,10 +45,9 @@ func main() {
 
 	logger.Info("Shutting down reportd...\n")
 
-	messenger.Shutdown()
-	localreporting.Shutdown()
-	monitor.Shutdown()
-	logger.Shutdown()
+	stopServices()
+
+	logger.Info("Reportd services done shutting down.\n")
 
 }
 
@@ -56,6 +56,27 @@ func startServices() {
 	localreporting.Startup()
 	messenger.Startup()
 
+}
+
+func stopServices() {
+	var wg sync.WaitGroup
+
+	shutdowns := []func(){
+		messenger.Shutdown,
+		localreporting.Shutdown,
+		monitor.Shutdown,
+		logger.Shutdown,
+	}
+
+	for _, f := range shutdowns {
+		wg.Add(1)
+		go func(f func(), wgs *sync.WaitGroup) {
+			defer wgs.Done()
+			f()
+		}(f, &wg)
+	}
+
+	wg.Wait()
 }
 
 // Add signal handlers

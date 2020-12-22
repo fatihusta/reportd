@@ -12,10 +12,11 @@ import (
 
 // setupDatabase is a routine that sets up the database and spawns writers and readers to handle requests
 // THIS IS A ROUTINE
-func setupDatabase() {
+func setupDatabase(relations monitor.RoutineContextGroup) {
 	var rtName = "setup_database"
 	monitor.RoutineStarted(rtName)
 	defer monitor.RoutineEnd(rtName)
+
 	// Currently these are static, but could be pulled from settings?
 	dbPath := "/tmp"
 	dbFileName := "reports.db"
@@ -26,7 +27,7 @@ func setupDatabase() {
 	dbConnection, err := buildConnection(dbPath, dbFileName, dbSizeLimit)
 	if err != nil {
 		logger.Err("Unable to build database connection: %s\n", err)
-		//	monitor.RoutineError(rtName)
+		monitor.RoutineError(rtName)
 		return
 	}
 
@@ -38,25 +39,24 @@ func setupDatabase() {
 	createTables(dbConnection)
 
 	// Startup cleaner before writer queues
-	go tableCleaner(dbConnection, dbSizeLimit)
+	go tableCleaner(relations.Contexts["table_cleaner"], dbConnection, dbSizeLimit)
 
 	intfStatsStmt, sessStatsStmt, err := createPreparedStatements(dbConnection)
 
 	if err != nil {
 		logger.Err("Unable to build prepared statements: %s\n", err)
-		//	monitor.RoutineError(rtName)
+		monitor.RoutineError(rtName)
 		return
 	}
 
 	// Startup interface stats queue writer
-	go queueWriter("interface_stats", intfStatsStmt, interfaceStatsChannel)
+	go queueWriter(relations.Contexts["interface_stats_processor"], "interface_stats_processor", intfStatsStmt, interfaceStatsChannel)
 
 	// Startup sess stats queue writer
-	go queueWriter("session_stats", sessStatsStmt, sessionStatsChannel)
+	go queueWriter(relations.Contexts["session_stats_processor"], "session_stats_processor", sessStatsStmt, sessionStatsChannel)
 
 	// Startup session queue writer
-	go sessWriter(dbConnection)
-
+	go sessWriter(relations.Contexts["session_processor"], dbConnection)
 }
 
 // getSizeLimit uses the dbfilename and path to determine filesystem stats

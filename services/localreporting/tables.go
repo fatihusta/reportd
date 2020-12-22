@@ -1,6 +1,7 @@
 package localreporting
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strconv"
@@ -383,7 +384,7 @@ func createTables(dbConn *sql.DB) {
  @param dbConn (*sql.DB) - the db connection
  @param sizeLimit (int64) - the db size limit
 **/
-func tableCleaner(dbConn *sql.DB, sizeLimit int64) {
+func tableCleaner(ctx context.Context, dbConn *sql.DB, sizeLimit int64) {
 	var rtName = "table_cleaner"
 	monitor.RoutineStarted(rtName)
 	defer monitor.RoutineEnd(rtName)
@@ -395,84 +396,93 @@ func tableCleaner(dbConn *sql.DB, sizeLimit int64) {
 
 	for {
 		select {
+		case <-ctx.Done():
+			logger.Info("Stopping table cleaner\n")
+			return
 		case <-ch:
-		case <-time.After(60 * time.Second):
-			currentSize, pageSize, pageCount, maxPageCount, freeCount, err := loadDbStats(dbConn)
+		case <-time.After(10 * time.Second):
+		}
 
-			if err != nil {
-				logger.Crit("Unable to load DB Stats: %s\n", err.Error())
-				//monitor.RoutineError(rtName)
-				break
-			}
+		currentSize, pageSize, pageCount, maxPageCount, freeCount, err := loadDbStats(dbConn)
 
-			logger.Info("Database Size:%v MB  Limit:%v MB  Free Pages:%v Page Size: %v Page Count: %v Max Page Count: %v \n", currentSize/megaByte, sizeLimit/megaByte, freeCount, pageSize, pageCount, maxPageCount)
+		if err != nil {
+			logger.Crit("Unable to load DB Stats: %s\n", err.Error())
+			monitor.RoutineError(rtName)
+			continue
+		}
 
-			// if we haven't reached the size limit just continue
-			if currentSize < sizeLimit {
-				break
-			}
+		logger.Info("Database Size:%v MB  Limit:%v MB  Free Pages:%v Page Size: %v Page Count: %v Max Page Count: %v \n", currentSize/megaByte, sizeLimit/megaByte, freeCount, pageSize, pageCount, maxPageCount)
 
-			// if we haven't dropped below the minimum free page limit just continue
-			if freeCount >= (minFreePageSpace / pageSize) {
-				break
-			}
+		// if we haven't reached the size limit just continue
+		if currentSize < sizeLimit {
+			continue
+		}
 
-			// database is getting full so clean out some of the oldest data
-			logger.Info("Database starting trim operation\n")
+		// if we haven't dropped below the minimum free page limit just continue
+		if freeCount >= (minFreePageSpace / pageSize) {
+			continue
+		}
 
-			tx, err := dbConn.Begin()
-			if err != nil {
-				logger.Warn("Failed to begin transaction: %s\n", err.Error())
-				//monitor.RoutineError(rtName)
-			}
+		// database is getting full so clean out some of the oldest data
+		logger.Info("Database starting trim operation\n")
 
-			err = trimPercent("sessions", .10, tx)
-			if err != nil {
-				logger.Warn("Failed to trim sessions: %s\n", err.Error())
-				//monitor.RoutineError(rtName)
-			}
+		tx, err := dbConn.Begin()
+		if err != nil {
+			logger.Warn("Failed to begin transaction: %s\n", err.Error())
+			monitor.RoutineError(rtName)
+			continue
+		}
 
-			err = trimPercent("session_stats", .10, tx)
-			if err != nil {
-				logger.Warn("Failed to trim session_stats: %s\n", err.Error())
-				//monitor.RoutineError(rtName)
-			}
+		err = trimPercent("sessions", .10, tx)
+		if err != nil {
+			logger.Warn("Failed to trim sessions: %s\n", err.Error())
+			monitor.RoutineError(rtName)
+			continue
+		}
 
-			err = trimPercent("interface_stats", .10, tx)
-			if err != nil {
-				logger.Warn("Failed to trim interface_stats: %s\n", err.Error())
-				//monitor.RoutineError(rtName)
-			}
+		err = trimPercent("session_stats", .10, tx)
+		if err != nil {
+			logger.Warn("Failed to trim session_stats: %s\n", err.Error())
+			monitor.RoutineError(rtName)
+			continue
+		}
 
-			logger.Info("Committing database trim...\n")
+		err = trimPercent("interface_stats", .10, tx)
+		if err != nil {
+			logger.Warn("Failed to trim interface_stats: %s\n", err.Error())
+			monitor.RoutineError(rtName)
+			continue
+		}
 
-			// end transaction
-			err = tx.Commit()
-			if err != nil {
-				tx.Rollback()
-				logger.Warn("Failed to commit transaction: %s\n", err.Error())
-				//monitor.RoutineError(rtName)
+		logger.Info("Committing database trim...\n")
 
-			}
-			logger.Info("Database trim operation completed\n")
-
-			//also run optimize
-			runSQL(dbConn, "PRAGMA optimize")
-
-			logger.Info("Database trim operation completed\n")
-
-			currentSize, pageSize, pageCount, maxPageCount, freeCount, err = loadDbStats(dbConn)
-			if err != nil {
-				logger.Crit("Unable to load DB Stats POST TRIM: %s\n", err.Error())
-				//monitor.RoutineError(rtName)
-				break
-			}
-
-			logger.Info("POST TRIM Database Size:%v MB  Limit:%v MB  Free Pages:%v Page Size: %v Page Count: %v Max Page Count: %v \n", currentSize/megaByte, sizeLimit/megaByte, freeCount, pageSize, pageCount, maxPageCount)
-			// re-run and check size with no delay
-			ch <- true
+		// end transaction
+		err = tx.Commit()
+		if err != nil {
+			tx.Rollback()
+			logger.Warn("Failed to commit transaction: %s\n", err.Error())
+			monitor.RoutineError(rtName)
+			continue
 
 		}
+		logger.Info("Database trim operation completed\n")
+
+		//also run optimize
+		runSQL(dbConn, "PRAGMA optimize")
+
+		logger.Info("Database trim operation completed\n")
+
+		currentSize, pageSize, pageCount, maxPageCount, freeCount, err = loadDbStats(dbConn)
+		if err != nil {
+			logger.Crit("Unable to load DB Stats POST TRIM: %s\n", err.Error())
+			//monitor.RoutineError(rtName)
+			continue
+		}
+
+		logger.Info("POST TRIM Database Size:%v MB  Limit:%v MB  Free Pages:%v Page Size: %v Page Count: %v Max Page Count: %v \n", currentSize/megaByte, sizeLimit/megaByte, freeCount, pageSize, pageCount, maxPageCount)
+		// re-run and check size with no delay
+		ch <- true
+
 	}
 }
 
