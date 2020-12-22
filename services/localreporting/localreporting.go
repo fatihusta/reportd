@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/untangle/golang-shared/services/logger"
-	pbe "github.com/untangle/golang-shared/structs/ProtoBuffEvent"
+	pbe "github.com/untangle/golang-shared/structs/protocolbuffers/SessionEvent"
 	"github.com/untangle/reportd/services/monitor"
 )
 
 var interfaceStatsChannel = make(chan *[]interface{}, 1000)
 var sessionStatsChannel = make(chan *[]interface{}, 5000)
-var sessionsChannel = make(chan *pbe.ProtoBuffEvent, 10000)
+var sessionsChannel = make(chan *pbe.SessionEvent, 10000)
 var contextRelation = monitor.RoutineContextGroup{}
 
 // Startup is used to startup the localreporting service
@@ -34,10 +34,10 @@ func Shutdown() {
 func createReceiverChannels() {
 	interfaceStatsChannel = make(chan *[]interface{}, 1000)
 	sessionStatsChannel = make(chan *[]interface{}, 5000)
-	sessionsChannel = make(chan *pbe.ProtoBuffEvent, 10000)
+	sessionsChannel = make(chan *pbe.SessionEvent, 10000)
 }
 
 // AddToSessionChannel will add the item pointer into the sessions channel
-func AddToSessionChannel(item *pbe.ProtoBuffEvent) {
+func AddToSessionChannel(item *pbe.SessionEvent) {
 	sessionsChannel <- item
 }

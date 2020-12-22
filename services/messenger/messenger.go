@@ -5,7 +5,7 @@ import (
 
 	zmq "github.com/pebbe/zmq4"
 	"github.com/untangle/golang-shared/services/logger"
-	pbe "github.com/untangle/golang-shared/structs/ProtoBuffEvent"
+	pbe "github.com/untangle/golang-shared/structs/protocolbuffers/SessionEvent"
 	"github.com/untangle/reportd/services/localreporting"
 	"github.com/untangle/reportd/services/monitor"
 	"google.golang.org/protobuf/proto"
@@ -59,7 +59,7 @@ func sessionListener(ctx context.Context, soc *zmq.Socket) {
 			//logger.Info("Incoming Message size: %d bytes\n", len(msg[1])+int(unsafe.Sizeof(msg[1])))
 
 			// Try to parse the message, if we cant then continue to next message
-			newEvt := &pbe.ProtoBuffEvent{}
+			newEvt := &pbe.SessionEvent{}
 			if err := proto.Unmarshal(msg[1], newEvt); err != nil {
 				logger.Warn("Unable to parse message: %s\n", err)
 				continue

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/untangle/golang-shared/services/logger"
-	pbe "github.com/untangle/golang-shared/structs/ProtoBuffEvent"
+	pbe "github.com/untangle/golang-shared/structs/protocolbuffers/SessionEvent"
 	"github.com/untangle/reportd/services/monitor"
 	spb "google.golang.org/protobuf/types/known/structpb"
 )
@@ -34,7 +34,7 @@ func queueWriter(ctx context.Context, queueType string, stmt *sql.Stmt, queue ch
 
 // sessWriter reads the Session event queue and writes the appropriate data
 func sessWriter(ctx context.Context, dbConn *sql.DB) {
-	var sessionBatch []pbe.ProtoBuffEvent
+	var sessionBatch []pbe.SessionEvent
 	var lastInsert time.Time
 	var retryBatch = make(chan bool, 1)
 	const eventLoggerInterval = 10 * time.Second
@@ -95,8 +95,7 @@ func sessWriter(ctx context.Context, dbConn *sql.DB) {
 // param eventBatch ([]Event) - events to commit to DB
 // param batchCount (int) - numbers of events being commited to DB
 // return ([]Event, time.Time) - return a nil eventBatch and the current time
-func batchTransaction(dbConn *sql.DB, eventBatch []pbe.ProtoBuffEvent, batchCount int) ([]pbe.ProtoBuffEvent, time.Time, bool) {
-	logger.Debug("%v Items ready for batch, starting transaction at %v...\n", batchCount, time.Now())
+func batchTransaction(dbConn *sql.DB, eventBatch []pbe.SessionEvent, batchCount int) ([]pbe.SessionEvent, time.Time, bool) {
 
 	tx, err := dbConn.Begin()
 	if err != nil {
@@ -129,10 +128,10 @@ func batchTransaction(dbConn *sql.DB, eventBatch []pbe.ProtoBuffEvent, batchCoun
 	return nil, time.Now(), false
 }
 
-// eventToTransaction converts the ProtoBuffEvent object into a Sql Transaction and appends it into the current transaction context
-// param event (ProtoBuffEvent) - the protocol buffer event to process
+// eventToTransaction converts the SessionEvent object into a Sql Transaction and appends it into the current transaction context
+// param event (SessionEvent) - the protocol buffer event to process
 // param tx (*sql.Tx) - the transaction context
-func eventToTransaction(event pbe.ProtoBuffEvent, tx *sql.Tx) error {
+func eventToTransaction(event pbe.SessionEvent, tx *sql.Tx) error {
 	var sqlStr string
 	var values []interface{}
 	var first = true
