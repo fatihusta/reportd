@@ -51,20 +51,20 @@ func Startup() {
 
 // RoutineStarted is used when initializing a new goroutine and adding monitoring to that routine
 func RoutineStarted(routineName string) {
-	logger.Info("Start Routine called: %s \n", routineName)
-	activeRoutinesMutex.Lock()
-	//routineInfoWatcher <- &routineInfo{Name: routineName, Action: start}
 	defer activeRoutinesMutex.Unlock()
+	activeRoutinesMutex.Lock()
+	logger.Info("Start Routine called: %s \n", routineName)
+	routineInfoWatcher <- &routineInfo{Name: routineName, Action: start}
 	activeRoutines[routineName] = true
 }
 
 // RoutineEnd is a function to simplify how we can defer calling finishRoutine() at the top of a function,
 // instead of having to always call it at the end of a routine
 func RoutineEnd(routineName string) {
-	logger.Info("Finish Routine called: %s \n", routineName)
-	activeRoutinesMutex.Lock()
-	//routineInfoWatcher <- &routineInfo{Name: routineName, Action: end}
 	defer activeRoutinesMutex.Unlock()
+	activeRoutinesMutex.Lock()
+	logger.Info("Finish Routine called: %s \n", routineName)
+	routineInfoWatcher <- &routineInfo{Name: routineName, Action: end}
 	_, ok := activeRoutines[routineName]
 	if ok {
 		delete(activeRoutines, routineName)
@@ -74,10 +74,10 @@ func RoutineEnd(routineName string) {
 
 // RoutineError signals a routine error to the routineInfoWatcher channel
 func RoutineError(routineName string) {
-	logger.Info("Error Routine called: %s \n", routineName)
-	activeRoutinesMutex.Lock()
-	//routineInfoWatcher <- &routineInfo{Name: routineName, Action: err}
 	defer activeRoutinesMutex.Unlock()
+	activeRoutinesMutex.Lock()
+	logger.Info("Error Routine called: %s \n", routineName)
+	routineInfoWatcher <- &routineInfo{Name: routineName, Action: err}
 	_, ok := activeRoutines[routineName]
 	if ok {
 		delete(activeRoutines, routineName)
