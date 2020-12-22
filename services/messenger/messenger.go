@@ -3,9 +3,9 @@ package messenger
 import (
 	"context"
 
-	"github.com/jsommerville-untangle/golang-shared/services/logger"
-	pbe "github.com/jsommerville-untangle/golang-shared/structs/ProtoBuffEvent"
 	zmq "github.com/pebbe/zmq4"
+	"github.com/untangle/golang-shared/services/logger"
+	pbe "github.com/untangle/golang-shared/structs/ProtoBuffEvent"
 	"github.com/untangle/reportd/services/localreporting"
 	"github.com/untangle/reportd/services/monitor"
 	"google.golang.org/protobuf/proto"

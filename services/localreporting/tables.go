@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jsommerville-untangle/golang-shared/services/logger"
+	"github.com/untangle/golang-shared/services/logger"
 	"github.com/untangle/reportd/services/monitor"
 )
 

@@ -1,17 +1,17 @@
 # github.com/golang/protobuf v1.4.3
 ## explicit
 github.com/golang/protobuf/ptypes/struct
-# github.com/jsommerville-untangle/golang-shared v0.0.0-20201217001014-bd21309fb0b1
-## explicit
-github.com/jsommerville-untangle/golang-shared/services/logger
-github.com/jsommerville-untangle/golang-shared/services/overseer
-github.com/jsommerville-untangle/golang-shared/structs/ProtoBuffEvent
 # github.com/mattn/go-sqlite3 v1.14.5
 ## explicit
 github.com/mattn/go-sqlite3
 # github.com/pebbe/zmq4 v1.2.2
 ## explicit
 github.com/pebbe/zmq4
+# github.com/untangle/golang-shared v0.0.0-20201222192141-19fa40e508e4
+## explicit
+github.com/untangle/golang-shared/services/logger
+github.com/untangle/golang-shared/services/overseer
+github.com/untangle/golang-shared/structs/ProtoBuffEvent
 # google.golang.org/protobuf v1.23.0
 ## explicit
 google.golang.org/protobuf/encoding/prototext

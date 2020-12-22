@@ -3,8 +3,8 @@ package localreporting
 import (
 	"context"
 
-	"github.com/jsommerville-untangle/golang-shared/services/logger"
-	pbe "github.com/jsommerville-untangle/golang-shared/structs/ProtoBuffEvent"
+	"github.com/untangle/golang-shared/services/logger"
+	pbe "github.com/untangle/golang-shared/structs/ProtoBuffEvent"
 	"github.com/untangle/reportd/services/monitor"
 )
 

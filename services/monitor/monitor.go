@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jsommerville-untangle/golang-shared/services/logger"
+	"github.com/untangle/golang-shared/services/logger"
 )
 
 var routineInfoWatcher = make(chan *routineInfo)

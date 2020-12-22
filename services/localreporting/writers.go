@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/jsommerville-untangle/golang-shared/services/logger"
-	pbe "github.com/jsommerville-untangle/golang-shared/structs/ProtoBuffEvent"
+	"github.com/untangle/golang-shared/services/logger"
+	pbe "github.com/untangle/golang-shared/structs/ProtoBuffEvent"
 	"github.com/untangle/reportd/services/monitor"
 	spb "google.golang.org/protobuf/types/known/structpb"
 )

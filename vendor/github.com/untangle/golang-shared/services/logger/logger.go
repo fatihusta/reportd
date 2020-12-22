@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/jsommerville-untangle/golang-shared/services/overseer"
+	"github.com/untangle/golang-shared/services/overseer"
 )
 
 const logConfigFile = "/tmp/logconfig.js"

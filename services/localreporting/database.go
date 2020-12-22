@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/jsommerville-untangle/golang-shared/services/logger"
 	"github.com/mattn/go-sqlite3"
+	"github.com/untangle/golang-shared/services/logger"
 	"github.com/untangle/reportd/services/monitor"
 )
 

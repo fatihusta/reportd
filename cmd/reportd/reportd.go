@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jsommerville-untangle/golang-shared/services/logger"
 	zmq "github.com/pebbe/zmq4"
+	"github.com/untangle/golang-shared/services/logger"
 	"github.com/untangle/reportd/services/localreporting"
 	"github.com/untangle/reportd/services/messenger"
 	"github.com/untangle/reportd/services/monitor"
