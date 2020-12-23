@@ -2,13 +2,11 @@ package messenger
 
 import (
 	"context"
+	"unsafe"
 
 	zmq "github.com/pebbe/zmq4"
 	"github.com/untangle/golang-shared/services/logger"
-	pbe "github.com/untangle/golang-shared/structs/protocolbuffers/SessionEvent"
-	"github.com/untangle/reportd/services/localreporting"
 	"github.com/untangle/reportd/services/monitor"
-	"google.golang.org/protobuf/proto"
 )
 
 var messengerRelation = monitor.RoutineContextGroup{}
@@ -21,10 +19,13 @@ func Startup() {
 		logger.Warn("Unable to setup ZMQ sockets.")
 	}
 
-	messengerRelation = monitor.CreateRoutineContextRelation(context.Background(), "messenger", []string{"session_listener"})
+	messengerRelation = monitor.CreateRoutineContextRelation(context.Background(), "messenger", []string{"session_listener", "session_stats_listener", "interface_stats_listener"})
 
-	logger.Info("Setting up Session event listener on zmq socket...\n")
-	go sessionListener(messengerRelation.Contexts["session_listener"], socket)
+	logger.Info("Setting up event listeners on zmq socket...\n")
+	go messageListener(messengerRelation.Contexts["session_listener"], "session_listener", "untangle:packetd:sessions", socket)
+	go messageListener(messengerRelation.Contexts["session_stats_listener"], "session_stats_listener", "untangle:packetd:session-stats", socket)
+	go messageListener(messengerRelation.Contexts["interface_stats_listener"], "interface_stats_listener", "untangle:packetd:interface-stats", socket)
+
 }
 
 // Shutdown signals the serviceShutdown channel to close any running goroutines spawned by this service
@@ -33,10 +34,9 @@ func Shutdown() {
 	monitor.CancelContexts(messengerRelation)
 }
 
-// sessionListener is used to listen for ZMQ events being published
+// messageListener is used to listen for ZMQ events being published
 // THIS IS A ROUTINE
-func sessionListener(ctx context.Context, soc *zmq.Socket) {
-	var rtName = "session_listener"
+func messageListener(ctx context.Context, rtName string, topic string, soc *zmq.Socket) {
 	monitor.RoutineStarted(rtName)
 	defer monitor.RoutineEnd(rtName)
 	defer soc.Close()
@@ -48,6 +48,13 @@ func sessionListener(ctx context.Context, soc *zmq.Socket) {
 			logger.Info("Stopping ZMQ listener\n")
 			return
 		default:
+			err := soc.SetSubscribe(topic)
+			if err != nil {
+				logger.Warn("Unable to subscribe to topic. \n")
+				monitor.RoutineError(rtName)
+				return
+			}
+
 			msg, err := soc.RecvMessageBytes(0)
 
 			if err != nil {
@@ -56,19 +63,22 @@ func sessionListener(ctx context.Context, soc *zmq.Socket) {
 				return
 			}
 
-			//logger.Info("Incoming Message size: %d bytes\n", len(msg[1])+int(unsafe.Sizeof(msg[1])))
+			logger.Info("Incoming Message on topic: %s size: %d bytes\n", topic, len(msg[1])+int(unsafe.Sizeof(msg[1])))
 
+			// TODO:
+			// Send this to an event router queue for parsing
 			// Try to parse the message, if we cant then continue to next message
-			newEvt := &pbe.SessionEvent{}
-			if err := proto.Unmarshal(msg[1], newEvt); err != nil {
-				logger.Warn("Unable to parse message: %s\n", err)
-				continue
-			}
+			//newEvt := &pbe.SessionEvent{}
+			//if err := proto.Unmarshal(msg[1], newEvt); err != nil {
+			//	logger.Warn("Unable to parse message: %s\n", err)
+			//	continue
+			//}
 			//logger.Info("Converted message: %s\n", newEvt)
 
 			//For now we will just unmarshal here and send to the report processing channels
 			// TODO: really we should send this to some event router to determine if we need to populate both local and cloud channels
-			localreporting.AddToSessionChannel(newEvt)
+			//localreporting.AddToSessionChannel(newEvt)
+			//outFunction(newEvt)
 		}
 	}
 }
@@ -85,9 +95,6 @@ func setupZmqSocket() (soc *zmq.Socket, err error) {
 	// TODO: we should read a file created by packetd that contains a randomized
 	// ZMQ port to listen on
 	subscriber.Connect("tcp://localhost:5561")
-	err = subscriber.SetSubscribe("untangle:packetd:sessions")
-	if err != nil {
-		logger.Warn("Unable to subscribe to topic. \n")
-	}
+
 	return subscriber, nil
 }
