@@ -50,10 +50,10 @@ func setupDatabase(relations monitor.RoutineContextGroup) {
 	}
 
 	// Startup interface stats queue writer
-	go queueWriter(relations.Contexts["interface_stats_processor"], "interface_stats_processor", intfStatsStmt, interfaceStatsChannel)
+	go intfStatsWriter(relations.Contexts["interface_stats_processor"], intfStatsStmt)
 
 	// Startup sess stats queue writer
-	go queueWriter(relations.Contexts["session_stats_processor"], "session_stats_processor", sessStatsStmt, sessionStatsChannel)
+	go sessStatsWriter(relations.Contexts["session_stats_processor"], sessStatsStmt)
 
 	// Startup session queue writer
 	go sessWriter(relations.Contexts["session_processor"], dbConnection)

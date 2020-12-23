@@ -4,13 +4,15 @@ import (
 	"context"
 
 	"github.com/untangle/golang-shared/services/logger"
-	pbe "github.com/untangle/golang-shared/structs/protocolbuffers/SessionEvent"
+	ise "github.com/untangle/golang-shared/structs/protocolbuffers/InterfaceStatsEvent"
+	se "github.com/untangle/golang-shared/structs/protocolbuffers/SessionEvent"
+	sse "github.com/untangle/golang-shared/structs/protocolbuffers/SessionStatsEvent"
 	"github.com/untangle/reportd/services/monitor"
 )
 
-var interfaceStatsChannel = make(chan *[]interface{}, 1000)
-var sessionStatsChannel = make(chan *[]interface{}, 5000)
-var sessionsChannel = make(chan *pbe.SessionEvent, 10000)
+var interfaceStatsChannel = make(chan *ise.InterfaceStatsEvent, 1000)
+var sessionStatsChannel = make(chan *sse.SessionStatsEvent, 5000)
+var sessionsChannel = make(chan *se.SessionEvent, 10000)
 var contextRelation = monitor.RoutineContextGroup{}
 
 // Startup is used to startup the localreporting service
@@ -32,12 +34,22 @@ func Shutdown() {
 
 // createReceiverChannels builds (or rebuilds) the channels used for receiving and writing event data
 func createReceiverChannels() {
-	interfaceStatsChannel = make(chan *[]interface{}, 1000)
-	sessionStatsChannel = make(chan *[]interface{}, 5000)
-	sessionsChannel = make(chan *pbe.SessionEvent, 10000)
+	interfaceStatsChannel = make(chan *ise.InterfaceStatsEvent, 1000)
+	sessionStatsChannel = make(chan *sse.SessionStatsEvent, 5000)
+	sessionsChannel = make(chan *se.SessionEvent, 10000)
 }
 
 // AddToSessionChannel will add the item pointer into the sessions channel
-func AddToSessionChannel(item *pbe.SessionEvent) {
+func AddToSessionChannel(item *se.SessionEvent) {
 	sessionsChannel <- item
+}
+
+// AddToSessionStatsChannel will add the item pointer to the session stats channel
+func AddToSessionStatsChannel(item *sse.SessionStatsEvent) {
+	sessionStatsChannel <- item
+}
+
+// AddToInterfaceStatsChannel will add the item pointer to the interface stats channel
+func AddToInterfaceStatsChannel(item *ise.InterfaceStatsEvent) {
+	interfaceStatsChannel <- item
 }

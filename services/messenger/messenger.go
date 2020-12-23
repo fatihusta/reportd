@@ -6,10 +6,17 @@ import (
 
 	zmq "github.com/pebbe/zmq4"
 	"github.com/untangle/golang-shared/services/logger"
+	ise "github.com/untangle/golang-shared/structs/protocolbuffers/InterfaceStatsEvent"
+	se "github.com/untangle/golang-shared/structs/protocolbuffers/SessionEvent"
+	sse "github.com/untangle/golang-shared/structs/protocolbuffers/SessionStatsEvent"
+
+	"github.com/untangle/reportd/services/localreporting"
 	"github.com/untangle/reportd/services/monitor"
+	"google.golang.org/protobuf/proto"
 )
 
 var messengerRelation = monitor.RoutineContextGroup{}
+var incomingMessages = make(chan [][]byte, 1000)
 
 // Startup intializes the ZMQ socket and starts the sessionListener go routine
 func Startup() {
@@ -19,7 +26,9 @@ func Startup() {
 		logger.Warn("Unable to setup ZMQ sockets.")
 	}
 
-	messengerRelation = monitor.CreateRoutineContextRelation(context.Background(), "messenger", []string{"session_listener", "session_stats_listener", "interface_stats_listener"})
+	messengerRelation = monitor.CreateRoutineContextRelation(context.Background(), "messenger", []string{"message_router", "session_listener", "session_stats_listener", "interface_stats_listener"})
+
+	go messageRouter(messengerRelation.Contexts["message_router"])
 
 	logger.Info("Setting up event listeners on zmq socket...\n")
 	go messageListener(messengerRelation.Contexts["session_listener"], "session_listener", "untangle:packetd:sessions", socket)
@@ -32,6 +41,55 @@ func Startup() {
 func Shutdown() {
 	logger.Info("Shutting down messenger service...\n")
 	monitor.CancelContexts(messengerRelation)
+}
+
+// messageRouter is used for routing and parsing received messages to proper channels
+// this reads the incomingMessages queue and sends them to proper localreporting or cloudreporting queues
+// THIS IS A ROUTINE
+func messageRouter(ctx context.Context) {
+	rtName := "message_router"
+	monitor.RoutineStarted(rtName)
+	defer monitor.RoutineEnd(rtName)
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("Stopping Message Router\n")
+			return
+		case msg := <-incomingMessages:
+			logger.Debug("Routing message for: %s \n", msg[0])
+
+			switch topic := string(msg[0]); topic {
+			case "untangle:packetd:sessions":
+				evt := &se.SessionEvent{}
+				if err := proto.Unmarshal(msg[1], evt); err != nil {
+					logger.Warn("Unable to parse message: %s\n", err)
+					continue
+				}
+				logger.Debug("Parsed %s message: %s\n", topic, evt)
+				localreporting.AddToSessionChannel(evt)
+
+			case "untangle:packetd:session-stats":
+				evt := &sse.SessionStatsEvent{}
+				if err := proto.Unmarshal(msg[1], evt); err != nil {
+					logger.Warn("Unable to parse message: %s\n", err)
+					continue
+				}
+				logger.Debug("Parsed %s message: %s\n", topic, evt)
+				localreporting.AddToSessionStatsChannel(evt)
+
+			case "untangle:packetd:interface-stats":
+				evt := &ise.InterfaceStatsEvent{}
+				if err := proto.Unmarshal(msg[1], evt); err != nil {
+					logger.Warn("Unable to parse message: %s\n", err)
+					continue
+				}
+				logger.Debug("Parsed %s message: %s\n", topic, evt)
+				localreporting.AddToInterfaceStatsChannel(evt)
+
+			}
+		}
+	}
 }
 
 // messageListener is used to listen for ZMQ events being published
@@ -63,22 +121,9 @@ func messageListener(ctx context.Context, rtName string, topic string, soc *zmq.
 				return
 			}
 
-			logger.Info("Incoming Message on topic: %s size: %d bytes\n", topic, len(msg[1])+int(unsafe.Sizeof(msg[1])))
+			logger.Debug("Incoming Message on topic: %s size: %d bytes\n", topic, len(msg[1])+int(unsafe.Sizeof(msg[1])))
 
-			// TODO:
-			// Send this to an event router queue for parsing
-			// Try to parse the message, if we cant then continue to next message
-			//newEvt := &pbe.SessionEvent{}
-			//if err := proto.Unmarshal(msg[1], newEvt); err != nil {
-			//	logger.Warn("Unable to parse message: %s\n", err)
-			//	continue
-			//}
-			//logger.Info("Converted message: %s\n", newEvt)
-
-			//For now we will just unmarshal here and send to the report processing channels
-			// TODO: really we should send this to some event router to determine if we need to populate both local and cloud channels
-			//localreporting.AddToSessionChannel(newEvt)
-			//outFunction(newEvt)
+			incomingMessages <- msg
 		}
 	}
 }

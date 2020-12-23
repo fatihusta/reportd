@@ -12,21 +12,116 @@ import (
 	spb "google.golang.org/protobuf/types/known/structpb"
 )
 
-// queueWriter reads a queue channel and writes data using the sql statement pointer passed in
-func queueWriter(ctx context.Context, queueType string, stmt *sql.Stmt, queue chan *[]interface{}) {
-	monitor.RoutineStarted(queueType)
-	defer monitor.RoutineEnd(queueType)
+// intfStatsWriter reads the interfacestatschannel and writes entries to the database using the prepared sql statement
+func intfStatsWriter(ctx context.Context, stmt *sql.Stmt) {
+	rtName := "interface_stats_processor"
+	monitor.RoutineStarted(rtName)
+	defer monitor.RoutineEnd(rtName)
 
 	for {
 		select {
-		case queueItem := <-queue:
-			if logger.IsTraceEnabled() {
-				logger.Trace("%s: %v\n", queueType, queueItem)
-			}
+		case intfStats := <-interfaceStatsChannel:
 
-			stmt.Exec(*queueItem...)
+			_, err := stmt.Exec(
+				intfStats.TimeStamp,
+				intfStats.InterfaceID,
+				intfStats.InterfaceName,
+				intfStats.DeviceName,
+				intfStats.IsWan,
+				intfStats.Latency1,
+				intfStats.Latency5,
+				intfStats.Latency15,
+				intfStats.LatencyVariance,
+				intfStats.PassiveLatency1,
+				intfStats.PassiveLatency5,
+				intfStats.PassiveLatency15,
+				intfStats.PassiveLatencyVariance,
+				intfStats.ActiveLatency1,
+				intfStats.ActiveLatency5,
+				intfStats.ActiveLatency15,
+				intfStats.ActiveLatencyVariance,
+				intfStats.Jitter1,
+				intfStats.Jitter5,
+				intfStats.Jitter15,
+				intfStats.JitterVariance,
+				intfStats.PingTimeout,
+				intfStats.PingTimeoutRate,
+				intfStats.RxBytes,
+				intfStats.RxBytesRate,
+				intfStats.RxPackets,
+				intfStats.RxPacketsRate,
+				intfStats.RxErrs,
+				intfStats.RxErrsRate,
+				intfStats.RxDrop,
+				intfStats.RxDropRate,
+				intfStats.RxFifo,
+				intfStats.RxFifoRate,
+				intfStats.RxFrame,
+				intfStats.RxFrameRate,
+				intfStats.RxCompressed,
+				intfStats.RxCompressedRate,
+				intfStats.RxMulticast,
+				intfStats.RxMulticastRate,
+				intfStats.TxBytes,
+				intfStats.TxBytesRate,
+				intfStats.TxPackets,
+				intfStats.TxPacketsRate,
+				intfStats.TxErrs,
+				intfStats.TxErrsRate,
+				intfStats.TxDrop,
+				intfStats.TxDropRate,
+				intfStats.TxFifo,
+				intfStats.TxFifoRate,
+				intfStats.TxColls,
+				intfStats.TxCollsRate,
+				intfStats.TxCarrier,
+				intfStats.TxCarrierRate,
+				intfStats.TxCompressed,
+				intfStats.TxCompressedRate,
+			)
+			if err != nil {
+				logger.Err("Error while executing %s insert: %s\n", rtName, err)
+				continue
+			}
 		case <-ctx.Done():
-			logger.Info("Stopping queue writer: %s \n", queueType)
+			logger.Info("Shutting down %s\n", rtName)
+			return
+		}
+	}
+}
+
+// sessStatsWriter reads the interfacestatschannel and writes entries to the database using the prepared sql statement
+func sessStatsWriter(ctx context.Context, stmt *sql.Stmt) {
+	rtName := "session_stats_processor"
+	monitor.RoutineStarted(rtName)
+	defer monitor.RoutineEnd(rtName)
+
+	for {
+		select {
+		case sessStats := <-sessionStatsChannel:
+
+			_, err := stmt.Exec(
+				sessStats.TimeStamp,
+				sessStats.SessionID,
+				sessStats.Bytes,
+				sessStats.ByteRate,
+				sessStats.ClientBytes,
+				sessStats.ClientByteRate,
+				sessStats.ServerBytes,
+				sessStats.ServerByteRate,
+				sessStats.Packets,
+				sessStats.PacketRate,
+				sessStats.ClientPackets,
+				sessStats.ClientPacketRate,
+				sessStats.ServerPackets,
+				sessStats.ServerPacketRate,
+			)
+			if err != nil {
+				logger.Err("Error while executing %s insert: %s\n", rtName, err)
+				continue
+			}
+		case <-ctx.Done():
+			logger.Info("Shutting down %s\n", rtName)
 			return
 		}
 	}
