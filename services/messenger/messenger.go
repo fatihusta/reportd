@@ -24,17 +24,29 @@ func Startup() {
 	logger.Info("Setting up event subscriber socket...\n")
 	eventSocket, err := setupEventSubscriberSocket()
 	if err != nil {
-		logger.Warn("Unable to setup event subscriber socket.")
+		logger.Warn("Unable to setup event subscriber socket: %s\n", err)
 	}
 
-	messengerRelation = monitor.CreateRoutineContextRelation(context.Background(), "messenger", []string{"event_router", "session_listener", "session_stats_listener", "interface_stats_listener"})
+	logger.Info("Setting up reporting query socket...\n")
+	querySocket, err := setupQuerySocket()
+	if err != nil {
+		logger.Warn("Unable to setup report query socket: %s", err)
+	}
+
+	messengerRelation = monitor.CreateRoutineContextRelation(context.Background(), "messenger", []string{"event_router", "session_listener", "session_stats_listener", "interface_stats_listener", "query_handler", "pair_tester"})
 
 	go eventRouter(messengerRelation.Contexts["event_router"])
 
-	logger.Info("Setting up event listeners on zmq socket...\n")
-	go eventListener(messengerRelation.Contexts["session_listener"], "session_listener", "untangle:packetd:sessions", eventSocket)
-	go eventListener(messengerRelation.Contexts["session_stats_listener"], "session_stats_listener", "untangle:packetd:session-stats", eventSocket)
-	go eventListener(messengerRelation.Contexts["interface_stats_listener"], "interface_stats_listener", "untangle:packetd:interface-stats", eventSocket)
+	if querySocket != nil {
+		go queryHandler(messengerRelation.Contexts["query_handler"], querySocket)
+	}
+
+	if eventSocket != nil {
+		logger.Info("Setting up event listeners on zmq socket...\n")
+		go eventListener(messengerRelation.Contexts["session_listener"], "session_listener", "untangle:packetd:sessions", eventSocket)
+		go eventListener(messengerRelation.Contexts["session_stats_listener"], "session_stats_listener", "untangle:packetd:session-stats", eventSocket)
+		go eventListener(messengerRelation.Contexts["interface_stats_listener"], "interface_stats_listener", "untangle:packetd:interface-stats", eventSocket)
+	}
 
 }
 
@@ -148,3 +160,57 @@ func setupEventSubscriberSocket() (soc *zmq.Socket, err error) {
 
 	return subscriber, nil
 }
+
+// setupQuerySocket builds the zmq socket used for responding to
+// database querys from restd
+func setupQuerySocket() (soc *zmq.Socket, err error) {
+	soc, err = zmq.NewSocket(zmq.PAIR)
+
+	if err != nil {
+		logger.Err("Unable to open ZMQ socket... %s\n", err)
+		return nil, err
+	}
+
+	// TODO: we should read a file created by packetd that contains a randomized
+	// ZMQ port to listen on
+	//replySoc.Connect("tcp://localhost:5590")
+	err = soc.Bind("tcp://127.0.0.1:5590")
+	if err != nil {
+		logger.Err("Unable to bind to ZMQ Pair socket... %s\n", err)
+		return nil, err
+	}
+
+	return
+}
+
+// queryHandler listens for requests on the db query socket and handles them appropriately
+func queryHandler(ctx context.Context, socket *zmq.Socket) {
+	rtName := "query_handler"
+	monitor.RoutineStarted(rtName)
+	defer monitor.RoutineEnd(rtName)
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("Stopping %s\n", rtName)
+			return
+		default:
+			msg, err := socket.RecvMessage(0)
+			if err != nil {
+				logger.Warn("Unable to receive messages: %s\n", err)
+				monitor.RoutineError(rtName)
+				return
+			}
+
+			logger.Info("queryHandler mesage: %s\n", msg)
+			logger.Info("Incoming Message size: %d bytes\n", len(msg)+int(unsafe.Sizeof(msg)))
+
+			testResponse := fmt.Sprintf("This is a test response message, got ur msg: %s\n", msg)
+			logger.Info("Sending back... %s", testResponse)
+
+			socket.Send(testResponse, 0)
+
+		}
+	}
+}
+
