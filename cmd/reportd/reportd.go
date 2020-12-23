@@ -14,6 +14,7 @@ import (
 
 	zmq "github.com/pebbe/zmq4"
 	"github.com/untangle/golang-shared/services/logger"
+	"github.com/untangle/reportd/services/cloudreporting"
 	"github.com/untangle/reportd/services/localreporting"
 	"github.com/untangle/reportd/services/messenger"
 	"github.com/untangle/reportd/services/monitor"
@@ -54,6 +55,7 @@ func main() {
 func startServices() {
 	monitor.Startup()
 	localreporting.Startup()
+	cloudreporting.Startup()
 	messenger.Startup()
 
 }
@@ -66,6 +68,7 @@ func stopServices() {
 		localreporting.Shutdown,
 		monitor.Shutdown,
 		logger.Shutdown,
+		cloudreporting.Shutdown,
 	}
 
 	for _, f := range shutdowns {

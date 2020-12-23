@@ -10,6 +10,7 @@ import (
 	se "github.com/untangle/golang-shared/structs/protocolbuffers/SessionEvent"
 	sse "github.com/untangle/golang-shared/structs/protocolbuffers/SessionStatsEvent"
 
+	"github.com/untangle/reportd/services/cloudreporting"
 	"github.com/untangle/reportd/services/localreporting"
 	"github.com/untangle/reportd/services/monitor"
 	"google.golang.org/protobuf/proto"
@@ -87,6 +88,10 @@ func messageRouter(ctx context.Context) {
 				logger.Debug("Parsed %s message: %s\n", topic, evt)
 				localreporting.AddToInterfaceStatsChannel(evt)
 
+				// only send WAN stats to the cloud interface stats channel
+				if evt.IsWan {
+					cloudreporting.AddToInterfaceStatsChannel(evt)
+				}
 			}
 		}
 	}

@@ -11,6 +11,7 @@ github.com/pebbe/zmq4
 ## explicit
 github.com/untangle/golang-shared/services/logger
 github.com/untangle/golang-shared/services/overseer
+github.com/untangle/golang-shared/services/settings
 github.com/untangle/golang-shared/structs/protocolbuffers/InterfaceStatsEvent
 github.com/untangle/golang-shared/structs/protocolbuffers/SessionEvent
 github.com/untangle/golang-shared/structs/protocolbuffers/SessionStatsEvent
