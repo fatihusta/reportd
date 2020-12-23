@@ -21,20 +21,20 @@ var incomingMessages = make(chan [][]byte, 1000)
 
 // Startup intializes the ZMQ socket and starts the sessionListener go routine
 func Startup() {
-	logger.Info("Setting up zmq listening socket...\n")
-	socket, err := setupZmqSocket()
+	logger.Info("Setting up event subscriber socket...\n")
+	eventSocket, err := setupEventSubscriberSocket()
 	if err != nil {
-		logger.Warn("Unable to setup ZMQ sockets.")
+		logger.Warn("Unable to setup event subscriber socket.")
 	}
 
-	messengerRelation = monitor.CreateRoutineContextRelation(context.Background(), "messenger", []string{"message_router", "session_listener", "session_stats_listener", "interface_stats_listener"})
+	messengerRelation = monitor.CreateRoutineContextRelation(context.Background(), "messenger", []string{"event_router", "session_listener", "session_stats_listener", "interface_stats_listener"})
 
-	go messageRouter(messengerRelation.Contexts["message_router"])
+	go eventRouter(messengerRelation.Contexts["event_router"])
 
 	logger.Info("Setting up event listeners on zmq socket...\n")
-	go messageListener(messengerRelation.Contexts["session_listener"], "session_listener", "untangle:packetd:sessions", socket)
-	go messageListener(messengerRelation.Contexts["session_stats_listener"], "session_stats_listener", "untangle:packetd:session-stats", socket)
-	go messageListener(messengerRelation.Contexts["interface_stats_listener"], "interface_stats_listener", "untangle:packetd:interface-stats", socket)
+	go eventListener(messengerRelation.Contexts["session_listener"], "session_listener", "untangle:packetd:sessions", eventSocket)
+	go eventListener(messengerRelation.Contexts["session_stats_listener"], "session_stats_listener", "untangle:packetd:session-stats", eventSocket)
+	go eventListener(messengerRelation.Contexts["interface_stats_listener"], "interface_stats_listener", "untangle:packetd:interface-stats", eventSocket)
 
 }
 
@@ -44,11 +44,11 @@ func Shutdown() {
 	monitor.CancelContexts(messengerRelation)
 }
 
-// messageRouter is used for routing and parsing received messages to proper channels
+// eventRouter is used for routing and parsing received messages to proper channels
 // this reads the incomingMessages queue and sends them to proper localreporting or cloudreporting queues
 // THIS IS A ROUTINE
-func messageRouter(ctx context.Context) {
-	rtName := "message_router"
+func eventRouter(ctx context.Context) {
+	rtName := "event_router"
 	monitor.RoutineStarted(rtName)
 	defer monitor.RoutineEnd(rtName)
 
@@ -97,9 +97,9 @@ func messageRouter(ctx context.Context) {
 	}
 }
 
-// messageListener is used to listen for ZMQ events being published
+// eventListener is used to listen for ZMQ events being publishedon the passed in socket, with a specific topic
 // THIS IS A ROUTINE
-func messageListener(ctx context.Context, rtName string, topic string, soc *zmq.Socket) {
+func eventListener(ctx context.Context, rtName string, topic string, soc *zmq.Socket) {
 	monitor.RoutineStarted(rtName)
 	defer monitor.RoutineEnd(rtName)
 	defer soc.Close()
@@ -133,8 +133,8 @@ func messageListener(ctx context.Context, rtName string, topic string, soc *zmq.
 	}
 }
 
-// setupZmqSocket prepares a zmq socket for listening to events
-func setupZmqSocket() (soc *zmq.Socket, err error) {
+// setupEventSubscriberSocket prepares a zmq socket for listening to events
+func setupEventSubscriberSocket() (soc *zmq.Socket, err error) {
 	subscriber, err := zmq.NewSocket(zmq.SUB)
 
 	if err != nil {
