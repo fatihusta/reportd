@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/signal"
 	"runtime"
@@ -12,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	zmq "github.com/pebbe/zmq4"
 	"github.com/untangle/golang-shared/services/logger"
 	"github.com/untangle/reportd/services/cloudreporting"
 	"github.com/untangle/reportd/services/localreporting"
@@ -115,22 +112,6 @@ func dumpStack() {
 	logger.Warn("Printing Thread Dump...\n")
 	logger.Warn("\n\n%s\n\n", buf[:stacklen])
 	logger.Warn("Thread dump complete.\n")
-}
-
-//  The publisher sends random messages starting with A-J:
-//  This is a debug thread taken from https://github.com/pebbe/zmq4/blob/master/examples/espresso.go
-func debugPublisher() {
-	publisher, _ := zmq.NewSocket(zmq.PUB)
-	publisher.Bind("tcp://*:5561")
-
-	for {
-		s := fmt.Sprintf("%c-%05d", rand.Intn(10)+'A', rand.Intn(100000))
-		_, err := publisher.SendMessage("untangle:packetd:events", s)
-		if err != nil {
-			break //  Interrupted
-		}
-		time.Sleep(100 * time.Millisecond) //  Wait for 1/10th second
-	}
 }
 
 // prints some basic stats about packetd
