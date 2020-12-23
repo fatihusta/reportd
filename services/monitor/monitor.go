@@ -139,7 +139,9 @@ func monitorRoutineEvents(ctx context.Context) {
 				handleRoutineWatcherEvents()
 			}
 		case <-time.Tick(60 * time.Second):
+			activeRoutinesMutex.Lock()
 			logger.Info("There are %v monitored routines.\n", len(activeRoutines))
+			activeRoutinesMutex.Unlock()
 		case <-ctx.Done():
 			logger.Info("Stopping routine monitor\n")
 			return
