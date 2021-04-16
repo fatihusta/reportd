@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"context"
+	"fmt"
 	"unsafe"
 
 	zmq "github.com/pebbe/zmq4"
@@ -213,4 +214,3 @@ func queryHandler(ctx context.Context, socket *zmq.Socket) {
 		}
 	}
 }
-
