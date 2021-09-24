@@ -3,7 +3,7 @@
 GOFLAGS ?= "-mod=vendor"
 GO111MODULE ?= "on"
 
-all: lint build-reportd
+all: build-reportd
 
 build-%:
 	cd cmd/$* ; \
