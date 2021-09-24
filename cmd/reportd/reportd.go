@@ -7,129 +7,79 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	zmq "github.com/pebbe/zmq4"
-	"github.com/untangle/packetd/services/logger"
+	"github.com/untangle/golang-shared/services/logger"
+	"github.com/untangle/reportd/services/cloudreporting"
+	"github.com/untangle/reportd/services/localreporting"
+	"github.com/untangle/reportd/services/messenger"
+	"github.com/untangle/reportd/services/monitor"
 )
 
-var routineWatcher = make(chan int)
+var shutdownFlag uint32
+var shutdownChannel = make(chan bool)
 
 // main is the entrypoint of reportd
 func main() {
-
 	logger.Startup()
-
 	logger.Info("Starting up reportd...\n")
+
+	startServices()
 
 	handleSignals()
 
-	logger.Info("Setting up zmq listening socket...\n")
-	socket, err := setupZmqSocket()
-
-	if err != nil {
-		logger.Warn("Unable to setup ZMQ sockets.")
-	}
-	defer socket.Close()
-
-	logger.Info("Setting up a debug publisher thread...\n")
-	go debugPublisher()
-
-	logger.Info("Setting up event listener on zmq socket...\n")
-	go eventListener(socket)
-
-	go eventLogger()
-
-	logger.Info("Waiting for all routines to finish...\n")
-
-	numGoroutines := 0
-	for diff := range routineWatcher {
-		numGoroutines += diff
-		logger.Info("Running routines: %v\n", numGoroutines)
-		if numGoroutines == 0 {
-			logger.Info("Shutting down reportd...\n")
-			os.Exit(0)
-		}
-	}
-}
-
-// eventListener is used to listen for ZMQ events being published
-func eventListener(soc *zmq.Socket) {
-	routineWatcher <- +1
-	logger.Info("Starting up a theoretical goroutine for event listening...\n")
-	defer startFinishRoutineThread()
-
-	timeout := time.After(5 * time.Second)
-	tick := time.Tick(500 * time.Millisecond)
-
-	for {
+	// Loop unless we get a shutdown flag or the shutdown channel is signaled
+	for !GetShutdownFlag() {
 		select {
-		case <-timeout:
-			logger.Warn("eventListener timed out! \n")
-			return
-		case <-tick:
-
-			logger.Info("Listening for messages\n")
-
-			msg, err := soc.RecvMessage(0)
-			if err != nil {
-				logger.Warn("Unable to receive messages: %s\n", err)
-				return
-			}
-
-			logger.Info("Got some data here, topic: %s, message: %s\n", msg[0], msg[1])
-
-		}
-	}
-}
-
-// eventLogger is used to log events to the database
-func eventLogger() {
-	routineWatcher <- +1
-	defer startFinishRoutineThread()
-
-	logger.Info("Starting up a theoretical goroutine for event logging...\n")
-
-	timeout := time.After(5 * time.Second)
-	tick := time.Tick(500 * time.Millisecond)
-
-	for {
-		select {
-		case <-timeout:
-			logger.Warn("event Logger timed out! \n")
-			return
-		case <-tick:
-			logger.Info("Reading messages from event queue...")
+		case <-shutdownChannel:
+			logger.Info("Shutdown channel initiated... %v\n", GetShutdownFlag())
+			break
+		case <-time.After(1 * time.Minute):
+			logger.Info("\n")
+			printStats()
 		}
 	}
 
+	logger.Info("Shutting down reportd...\n")
+
+	stopServices()
+
+	logger.Info("Reportd services done shutting down.\n")
+
 }
 
-// startFinishRoutineThread is a function to simplify how we can defer calling finishRoutine() at the top of a function,
-// instead of having to always call it at the end of a routine
-func startFinishRoutineThread() {
-	go finishRoutine()
+func startServices() {
+	monitor.Startup()
+	localreporting.Startup()
+	cloudreporting.Startup()
+	messenger.Startup()
+
 }
 
-// finishRoutine is called at the end of a running go routine to empty the channel watcher
-func finishRoutine() {
-	routineWatcher <- -1
-}
+func stopServices() {
+	var wg sync.WaitGroup
 
-// setupZmqSocket prepares a zmq socket for listening to events
-func setupZmqSocket() (soc *zmq.Socket, err error) {
-	subscriber, err := zmq.NewSocket(zmq.SUB)
-
-	if err != nil {
-		logger.Err("Unable to open ZMQ socket... %s\n", err)
-		return nil, err
+	shutdowns := []func(){
+		messenger.Shutdown,
+		localreporting.Shutdown,
+		monitor.Shutdown,
+		logger.Shutdown,
+		cloudreporting.Shutdown,
 	}
 
-	subscriber.Connect("tcp://localhost:5561")
-	subscriber.SetSubscribe("untangle:packetd:events")
+	for _, f := range shutdowns {
+		wg.Add(1)
+		go func(f func(), wgs *sync.WaitGroup) {
+			defer wgs.Done()
+			f()
+		}(f, &wg)
+	}
 
-	return subscriber, nil
+	wg.Wait()
 }
 
 // Add signal handlers
@@ -141,7 +91,7 @@ func handleSignals() {
 		sig := <-termch
 		go func() {
 			logger.Warn("Received signal [%v]. Shutting down routines...\n", sig)
-			os.Exit(0)
+			SetShutdownFlag()
 		}()
 	}()
 
@@ -181,4 +131,29 @@ func debugPublisher() {
 		}
 		time.Sleep(100 * time.Millisecond) //  Wait for 1/10th second
 	}
+}
+
+// prints some basic stats about packetd
+func printStats() {
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	logger.Info("Memory Stats:\n")
+	logger.Info("Memory Alloc: %d kB\n", (mem.Alloc / 1024))
+	logger.Info("Memory TotalAlloc: %d kB\n", (mem.TotalAlloc / 1024))
+	logger.Info("Memory HeapAlloc: %d kB\n", (mem.HeapAlloc / 1024))
+	logger.Info("Memory HeapSys: %d kB\n", (mem.HeapSys / 1024))
+}
+
+// GetShutdownFlag returns the shutdown flag for kernel
+func GetShutdownFlag() bool {
+	if atomic.LoadUint32(&shutdownFlag) != 0 {
+		return true
+	}
+	return false
+}
+
+// SetShutdownFlag sets the shutdown flag for kernel
+func SetShutdownFlag() {
+	shutdownChannel <- true
+	atomic.StoreUint32(&shutdownFlag, 1)
 }
