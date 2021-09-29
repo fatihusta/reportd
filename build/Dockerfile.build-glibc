@@ -1,9 +1,9 @@
-FROM golang:1.13.15-alpine3.12
+FROM golang:1.13.15
 LABEL maintainer="Sebastien Delafond <sdelafond@gmail.com>"
 
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
-RUN mkdir /etc/apt/apt.conf.d/
+
 RUN echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/no-recommends && \
     echo 'APT::Install-Suggests "false";' >> /etc/apt/apt.conf.d/no-recommends
 
