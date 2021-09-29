@@ -99,7 +99,6 @@ pipeline {
                     environment {
                         libc = 'glibc'
                         reportd = "cmd/reportd/reportd-${libc}"
-                        dockerfile = 'build/docker-compose.test.yml'
                     }
 
                     stages {
@@ -114,13 +113,7 @@ pipeline {
                                 sh "test -f ${reportd} && file ${reportd} | grep -q GNU/Linux"
                             }
                         }
-
-                        stage('settingsd testing for libc') {
-                            steps {
-                                sh "docker-compose -f ${dockerfile} build local"
-                                sh "docker-compose -f ${dockerfile} up --abort-on-container-exit --exit-code-from local"
-                            }
-                        }
+                        
                     }
                 }
             }
