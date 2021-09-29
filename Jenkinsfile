@@ -1,5 +1,5 @@
 void buildReportd(String libc, String buildDir) {
-    sh "docker pull untangleinc/reportd:build-${libc}"
+    // sh "docker pull untangleinc/reportd:build-${libc}"
     sh "docker-compose -f ${buildDir}/build/docker-compose.build.yml -p reportd_${libc} run ${libc}-local"
     sh "cp ${buildDir}/cmd/reportd/reportd cmd/reportd/reportd-${libc}"
 }

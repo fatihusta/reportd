@@ -1,12 +1,12 @@
 version: '2'
 services:
     musl:
-      image: untangleinc/packetd:build-musl
+      image: untangleinc/reportd:build-musl
       volumes:
         - ..:/go/reportd
 
     glibc:
-      image: untangleinc/packetd:build-glibc
+      image: untangleinc/reportd:build-glibc
       volumes:
         - ..:/go/reportd
 
