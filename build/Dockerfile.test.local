@@ -1,4 +1,4 @@
-FROM untangleinc/reportd:build-glibc
+FROM untangleinc/packetd:build-glibc
 
 RUN apt-get update -q --allow-releaseinfo-change
 
