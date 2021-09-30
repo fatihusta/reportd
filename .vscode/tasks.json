@@ -4,7 +4,7 @@
         {
             "label": "Build & Install reportd",
             "type": "shell",
-            "command": "./.vscode/vsbuild.sh -t sdwan_address -m true",
+            "command": "./.vscode/vsbuild.sh -t 192.168.1.1 -m true",
             "group": {
                 "kind": "build",
                 "isDefault": true

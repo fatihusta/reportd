@@ -9,6 +9,7 @@ import (
 	ise "github.com/untangle/golang-shared/structs/protocolbuffers/InterfaceStatsEvent"
 	se "github.com/untangle/golang-shared/structs/protocolbuffers/SessionEvent"
 	sse "github.com/untangle/golang-shared/structs/protocolbuffers/SessionStatsEvent"
+	tpse "github.com/untangle/golang-shared/structs/protocolbuffers/ThreatPreventionStatsEvent"
 
 	"github.com/untangle/reportd/services/cloudreporting"
 	"github.com/untangle/reportd/services/localreporting"
@@ -27,7 +28,11 @@ func Startup() {
 		logger.Warn("Unable to setup ZMQ sockets.")
 	}
 
-	messengerRelation = monitor.CreateRoutineContextRelation(context.Background(), "messenger", []string{"message_router", "session_listener", "session_stats_listener", "interface_stats_listener"})
+	messengerRelation = monitor.CreateRoutineContextRelation(
+		context.Background(),
+		"messenger",
+		[]string{"message_router", "session_listener", "session_stats_listener", "interface_stats_listener", "threat_prevention_stats_listener"},
+	)
 
 	go messageRouter(messengerRelation.Contexts["message_router"])
 
@@ -35,6 +40,7 @@ func Startup() {
 	go messageListener(messengerRelation.Contexts["session_listener"], "session_listener", "untangle:packetd:sessions", socket)
 	go messageListener(messengerRelation.Contexts["session_stats_listener"], "session_stats_listener", "untangle:packetd:session-stats", socket)
 	go messageListener(messengerRelation.Contexts["interface_stats_listener"], "interface_stats_listener", "untangle:packetd:interface-stats", socket)
+	go messageListener(messengerRelation.Contexts["threat_prevention_stats_listener"], "threat_prevention_stats_listener", "untangle:packetd:threat-prevention-stats", socket)
 
 }
 
@@ -92,6 +98,14 @@ func messageRouter(ctx context.Context) {
 				if evt.IsWan {
 					cloudreporting.AddToInterfaceStatsChannel(evt)
 				}
+			case "untangle:packetd:threat-prevention-stats":
+				evt := &tpse.ThreatPreventionStatsEvent{}
+				if err := proto.Unmarshal(msg[1], evt); err != nil {
+					logger.Warn("Unable to parse message: %s\n", err)
+					continue
+				}
+				logger.Debug("Parsed %s message: %s\n", topic, evt)
+				localreporting.AddToThreatPreventionStatsChannel(evt)
 			}
 		}
 	}
