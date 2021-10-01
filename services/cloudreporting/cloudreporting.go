@@ -39,7 +39,7 @@ type CloudEvent struct {
 func Startup() {
 	cloudIntfStatsChannel = make(chan *ise.InterfaceStatsEvent, 1000)
 	cloudReportingRelation = monitor.CreateRoutineContextRelation(context.Background(), "cloudreporting", []string{"interface_stats_sender"})
-	uid, err := settings.GetUID()
+	uid, err := settings.GetUID("/etc/config/uid")
 	if err != nil {
 		logger.Warn("Unable to read UID: %s - Using all zeros\n", err.Error())
 	}

@@ -198,7 +198,7 @@ func sessWriter(ctx context.Context, dbConn *sql.DB) {
 				}
 			}
 		case <-retryBatch:
-			logger.Info("Retrying a batch...")
+			logger.Info("Retrying a batch...\n")
 
 			retry := false
 			batchCount := len(sessionBatch)

@@ -129,21 +129,21 @@ func createPreparedStatements(dbConn *sql.DB) (*sql.Stmt, *sql.Stmt, *sql.Stmt, 
 	interfaceStatsStatement, err := dbConn.Prepare(GetInterfaceStatsInsertQuery())
 	if err != nil {
 		logger.Err("Failed to prepare interface_stats database statement: %s\n", err.Error())
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// prepare the SQL used for session_stats INSERT
 	sessionStatsStatement, err := dbConn.Prepare(GetSessionStatsInsertQuery())
 	if err != nil {
 		logger.Err("Failed to prepare session_stats database statement: %s\n", err.Error())
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// prepare the SQL used for session_stats INSERT
-	threatPreventionStatsStatement, err := dbConn.Prepare(GetThreatpreventionStatsInsertQuery())
+	threatPreventionStatsStatement, err := dbConn.Prepare(GetThreatPreventionStatsInsertQuery())
 	if err != nil {
 		logger.Err("Failed to prepare session_stats database statement: %s\n", err.Error())
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	return interfaceStatsStatement, sessionStatsStatement, threatPreventionStatsStatement, err

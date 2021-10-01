@@ -580,7 +580,7 @@ func runSQL(dbConn *sql.DB, sqlStr string) string {
 }
 
 // GetThreatpreventionStatsColumnList returns the list of columns in the threatprevention_stats table
-func GetThreatpreventionStatsColumnList() []string {
+func GetThreatPreventionStatsColumnList() []string {
 	return []string{
 		"time_stamp",
 		"blocked_address",
@@ -589,9 +589,9 @@ func GetThreatpreventionStatsColumnList() []string {
 	}
 }
 
-// GetThreatpreventionStatsInsertQuery generates the SQL for creating the prepared INSERT statement for the threatprevention_stats table
-func GetThreatpreventionStatsInsertQuery() string {
-	colList := GetThreatpreventionStatsColumnList()
+// GetThreatPreventionStatsInsertQuery generates the SQL for creating the prepared INSERT statement for the threatprevention_stats table
+func GetThreatPreventionStatsInsertQuery() string {
+	colList := GetThreatPreventionStatsColumnList()
 	sqlStr := "INSERT INTO threatprevention_stats ("
 	valStr := "("
 
