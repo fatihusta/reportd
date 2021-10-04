@@ -1,9 +1,3 @@
-// Query holds the results of a database query operation
-type Query struct {
-	ID   uint64
-	Rows *sql.Rows
-}
-
 // The queries map tracks async database requests from the admin interface. A call
 // is made to CreateQuery, the results are fetched via one or more calls to
 // GetData, followed by a final call to CloseQuery for cleanup.
