@@ -139,10 +139,10 @@ func createPreparedStatements(dbConn *sql.DB) (*sql.Stmt, *sql.Stmt, *sql.Stmt, 
 		return nil, nil, nil, err
 	}
 
-	// prepare the SQL used for session_stats INSERT
+	// prepare the SQL used for threat_prevention_stats INSERT
 	threatPreventionStatsStatement, err := dbConn.Prepare(GetThreatPreventionStatsInsertQuery())
 	if err != nil {
-		logger.Err("Failed to prepare session_stats database statement: %s\n", err.Error())
+		logger.Err("Failed to prepare threat_prevention_stats database statement: %s\n", err.Error())
 		return nil, nil, nil, err
 	}
 
