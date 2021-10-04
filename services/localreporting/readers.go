@@ -1,3 +1,14 @@
+package localreporting
+
+import (
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"sync"
+
+	"github.com/untangle/golang-shared/services/logger"
+)
+
 // The queries map tracks async database requests from the admin interface. A call
 // is made to CreateQuery, the results are fetched via one or more calls to
 // GetData, followed by a final call to CloseQuery for cleanup.
