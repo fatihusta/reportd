@@ -1,9 +1,9 @@
 package zmqd
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/untangle/golang-shared/services/logger"
 	rzs "github.com/untangle/golang-shared/services/restdZmqServer"
@@ -57,63 +57,48 @@ func (p reportdProc) Process(request *zreq.ZMQRequest) (processedReply []byte, p
 	// Based on the Function, retrive the proper information
 	switch function {
 	case QueryCreate:
-		logger.Info("Handling QueryCreate")
+		logger.Info("Handling QueryCreate\n")
 		queryString := string(request.Data.Value)
 		sanitizedQueryString := util.TrimLeftChar(util.TrimLeftChar(util.TrimLeftChar(queryString)))
-		logger.Info("=============QUERY STRING: %s\n", sanitizedQueryString)
 		createdQuery, err := localreporting.CreateQuery(sanitizedQueryString)
 		logger.Info("Created query: %v", createdQuery)
 		if err != nil {
 			return nil, errors.New("Error creating query " + err.Error())
 		}
-		var queryCreateError error
 		reply.QueryCreate = createdQuery.ID
 		logger.Info("========Created QUERY ID: %d\n", createdQuery.ID)
-		if queryCreateError != nil {
-			return nil, errors.New("Error translating created query to protobuf " + queryCreateError.Error())
-		}
+
 	case QueryData:
-		logger.Info("Handling QueryData")
-		queryID := binary.BigEndian.Uint64(request.Data.Value)
+		logger.Info("Handling QueryData\n")
+		queryIDStr := string(request.Data.Value)
+		santizedQueryID := util.TrimLeftChar(util.TrimLeftChar(queryIDStr))
+		logger.Info("query data: %s\n", santizedQueryID)
+		queryID, err := strconv.ParseUint(santizedQueryID, 10, 64)
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("Error getting data for query %s "+err.Error(), queryIDStr))
+		}
 		data, err := localreporting.GetData(queryID)
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("Error getting data for query %d "+err.Error(), queryID))
 		}
+		reply.QueryData = data
 
-		response := make([]map[string]interface{}, 0)
-		queryData := make(map[string]interface{})
-		queryData["queryData"] = data
-		response = append(response, queryData)
-
-		// Convert table to protobuf
-		var queryDataError error
-		reply.QueryData, queryDataError = dataToProtobufStruct(response)
-		if queryDataError != nil {
-			return nil, errors.New("Error translating query data to protobuf " + queryDataError.Error())
-		}
 	case QueryClose:
-		logger.Info("Handling QueryClose, ", request.Data)
-		queryID := binary.BigEndian.Uint64(request.Data.Value)
+		logger.Info("Handling QueryClose, ", request.Data, "\n")
+		queryIDStr := string(request.Data.Value)
+		santizedQueryID := util.TrimLeftChar(util.TrimLeftChar(queryIDStr))
+		logger.Info("query close: %s\n", queryIDStr)
+		queryID, err := strconv.ParseUint(santizedQueryID, 10, 64)
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("Error getting data for query %s "+err.Error(), queryIDStr))
+		}
 		success, err := localreporting.CloseQuery(queryID)
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("Error getting data for query %d "+err.Error(), queryID))
 		}
 
-		// response := make([]map[string]interface{}, 0)
-		// queryData := make(map[string]interface{})
-		// queryData["data"] = success
-		// response = append(response, queryData)
 		reply.QueryClose = success
-	// case TestInfo:
-	// 	// TestInfo gets the test info for packetd for zmq testing
-	// 	info := retrieveTestInfo()
 
-	// 	// Convert table to protobuf
-	// 	var testInfoErr error
-	// 	reply.TestInfo, testInfoErr = dataToProtobufStruct(info)
-	// 	if testInfoErr != nil {
-	// 		return nil, errors.New("Error translating test info to protobuf: " + testInfoErr.Error())
-	// 	}
 	default:
 		// An unknown function sets the reply error
 		reply.ServerError = "Unknown function request to reportd"
