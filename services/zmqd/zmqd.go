@@ -10,7 +10,6 @@ import (
 	rrep "github.com/untangle/golang-shared/structs/protocolbuffers/ReportdReply"
 	zreq "github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest"
 	"github.com/untangle/reportd/services/localreporting"
-	"github.com/untangle/reportd/util"
 	"google.golang.org/protobuf/proto"
 	spb "google.golang.org/protobuf/types/known/structpb"
 )
@@ -26,8 +25,6 @@ const (
 	QueryData = zreq.ZMQRequest_QUERY_DATA
 	// QueryClose is the ZMQRequest QUERY_CLOSE function
 	QueryClose = zreq.ZMQRequest_QUERY_CLOSE
-	// TestInfo is the ZMQRequest TEST_INFO function
-	TestInfo = zreq.ZMQRequest_TEST_INFO
 )
 
 // Startup starts the zmq socket via restdZmqServer
@@ -58,22 +55,17 @@ func (p reportdProc) Process(request *zreq.ZMQRequest) (processedReply []byte, p
 	switch function {
 	case QueryCreate:
 		logger.Info("Handling QueryCreate\n")
-		queryString := string(request.Data.Value)
-		sanitizedQueryString := util.TrimLeftChar(util.TrimLeftChar(util.TrimLeftChar(queryString)))
-		createdQuery, err := localreporting.CreateQuery(sanitizedQueryString)
-		logger.Info("Created query: %v", createdQuery)
+		queryString := request.Data
+		createdQuery, err := localreporting.CreateQuery(queryString)
 		if err != nil {
 			return nil, errors.New("Error creating query " + err.Error())
 		}
 		reply.QueryCreate = createdQuery.ID
-		logger.Info("========Created QUERY ID: %d\n", createdQuery.ID)
 
 	case QueryData:
 		logger.Info("Handling QueryData\n")
-		queryIDStr := string(request.Data.Value)
-		santizedQueryID := util.TrimLeftChar(util.TrimLeftChar(queryIDStr))
-		logger.Info("query data: %s\n", santizedQueryID)
-		queryID, err := strconv.ParseUint(santizedQueryID, 10, 64)
+		queryIDStr := request.Data
+		queryID, err := strconv.ParseUint(queryIDStr, 10, 64)
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("Error getting data for query %s "+err.Error(), queryIDStr))
 		}
@@ -84,11 +76,9 @@ func (p reportdProc) Process(request *zreq.ZMQRequest) (processedReply []byte, p
 		reply.QueryData = data
 
 	case QueryClose:
-		logger.Info("Handling QueryClose, ", request.Data, "\n")
-		queryIDStr := string(request.Data.Value)
-		santizedQueryID := util.TrimLeftChar(util.TrimLeftChar(queryIDStr))
-		logger.Info("query close: %s\n", queryIDStr)
-		queryID, err := strconv.ParseUint(santizedQueryID, 10, 64)
+		logger.Info("Handling QueryClose\n")
+		queryIDStr := request.Data
+		queryID, err := strconv.ParseUint(queryIDStr, 10, 64)
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("Error getting data for query %s "+err.Error(), queryIDStr))
 		}
@@ -142,21 +132,4 @@ func dataToProtobufStruct(info []map[string]interface{}) ([]*spb.Struct, error) 
 	}
 
 	return protobufStruct, nil
-}
-
-// retrieveTestInfo creates test info to test zmq
-func retrieveTestInfo() []map[string]interface{} {
-	var tests []map[string]interface{}
-	m1 := make(map[string]interface{})
-	m1["ping"] = "pong"
-	m1["tennis"] = "ball"
-	tests = append(tests, m1)
-	tests = append(tests, m1)
-	m2 := make(map[string]interface{})
-	m2["pong"] = "ping"
-	m2["ball"] = "tennis"
-	tests = append(tests, m2)
-	tests = append(tests, m2)
-
-	return tests
 }

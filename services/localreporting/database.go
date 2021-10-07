@@ -36,8 +36,6 @@ func setupDatabase(relations monitor.RoutineContextGroup) {
 		monitor.RoutineError(rtName)
 		return
 	}
-
-	logger.Info("DB Connection: %v\n", dbConnection)
 	DBMain = dbConnection
 
 	// enable auto vaccuum = FULL, this will clean up empty pages by moving them
@@ -464,14 +462,10 @@ func getMapValue(m map[string]interface{}) string {
 // getDistinctValues returns the distinct values to be used
 // in a CATEGORIES_SERIES report
 func getDistinctValues(reportEntry *ReportEntry) ([]string, error) {
-	logger.Info("getting distinct values\n")
 	categoriesSQLStr, err := makeCategoriesSQLString(reportEntry)
 	if err != nil {
 		return nil, err
 	}
-	logger.Info("categories sql str: %s\n", categoriesSQLStr)
-	logger.Info("reportEntry %v\n", reportEntry.Conditions)
-	logger.Info("DB: %v\n", DBMain)
 	rows, err := DBMain.Query(categoriesSQLStr, conditionValues(reportEntry.Conditions)...)
 	if err != nil {
 		logger.Warn("Failed to get Distinct values: %v\n", err)

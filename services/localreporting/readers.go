@@ -30,13 +30,11 @@ func CreateQuery(reportEntryStr string) (*Query, error) {
 	var err error
 	reportEntry := &ReportEntry{}
 
-	logger.Info("reportEntryStr: %s", reportEntryStr)
 	err = unmarshall(string(reportEntryStr), reportEntry)
 	if err != nil {
 		logger.Err("json.Unmarshal error: %s\n", err)
 		return nil, err
 	}
-	logger.Debug("ReportEntry: %v\n", reportEntry)
 
 	mergeConditions(reportEntry)
 	err = addOrUpdateTimestampConditions(reportEntry)
@@ -54,8 +52,6 @@ func CreateQuery(reportEntryStr string) (*Query, error) {
 		return nil, err
 	}
 	values := conditionValues(reportEntry.Conditions)
-
-	logger.Debug("SQL Values: %v \n", values)
 
 	rows, err = sqlStmt.Query(values...)
 
