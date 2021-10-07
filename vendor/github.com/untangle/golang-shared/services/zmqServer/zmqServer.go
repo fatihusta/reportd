@@ -1,4 +1,4 @@
-package restdzmqserver
+package zmqserver
 
 import (
 	"sync"
@@ -20,19 +20,19 @@ const (
 var isShutdown = make(chan struct{})
 var wg sync.WaitGroup
 
-// Processer is an interface for server processing functions 
+// Processer is an interface for server processing functions
 type Processer interface {
-	Process(request *zreq.ZMQRequest) ([]byte, error) 
+	Process(request *zreq.ZMQRequest) ([]byte, error)
 	ProcessError(processError string) ([]byte, error)
 }
 
-// Startup the server function 
+// Startup the server function
 func Startup(processer Processer) {
 	logger.Info("Starting zmq service...\n")
 	socketServer(processer)
 }
 
-// Shutdown the server function 
+// Shutdown the server function
 func Shutdown() {
 	close(isShutdown)
 	wg.Wait()
@@ -40,14 +40,14 @@ func Shutdown() {
 
 /* Main server funcion, creates socket and runs goroutine to keep server open */
 func socketServer(processer Processer) {
-	// Set up socket 
+	// Set up socket
 	zmqSocket, err := zmq.NewSocket(zmq.REP)
 	if err != nil {
 		logger.Warn("Failed to create zmq socket...", err)
 	}
 
 	// Put socket into the waitgroup
-	// TODO find a way to dynamically choose port. passed into the socket server here? 
+	// TODO find a way to dynamically choose port. passed into the socket server here?
 	zmqSocket.Bind("tcp://*:5555")
 	wg.Add(1)
 
@@ -111,7 +111,7 @@ func socketServer(processer Processer) {
 				socket.SendMessage(reply)
 				logger.Debug("Sent ", reply, "\n")
 			}
-		} 
+		}
 	}(&wg, zmqSocket, processer)
 }
 

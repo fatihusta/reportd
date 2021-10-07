@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/untangle/golang-shared/services/logger"
-	rzs "github.com/untangle/golang-shared/services/restdZmqServer"
+	zs "github.com/untangle/golang-shared/services/zmqServer"
 	rrep "github.com/untangle/golang-shared/structs/protocolbuffers/ReportdReply"
 	zreq "github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest"
 	"github.com/untangle/reportd/services/localreporting"
@@ -30,12 +30,12 @@ const (
 // Startup starts the zmq socket via restdZmqServer
 func Startup() {
 	processer := reportdProc(0)
-	rzs.Startup(processer)
+	zs.Startup(processer)
 }
 
 // Shutdown shuts down the zmq socket via restdZmqServer
 func Shutdown() {
-	rzs.Shutdown()
+	zs.Shutdown()
 }
 
 // Process is the packetdProc interface Process function implementation for restdZmqServer
