@@ -454,6 +454,13 @@ func tableCleaner(ctx context.Context, dbConn *sql.DB, sizeLimit int64) {
 			continue
 		}
 
+		err = trimPercent("tp_stats", .10, tx)
+		if err != nil {
+			logger.Warn("Failed to trim tp_stats: %s\n", err.Error())
+			monitor.RoutineError(rtName)
+			continue
+		}
+
 		logger.Info("Committing database trim...\n")
 
 		// end transaction
