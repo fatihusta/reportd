@@ -11,7 +11,6 @@ import (
 	zreq "github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest"
 	"github.com/untangle/reportd/services/localreporting"
 	"google.golang.org/protobuf/proto"
-	spb "google.golang.org/protobuf/types/known/structpb"
 )
 
 type reportdProc int
@@ -115,21 +114,4 @@ func (p reportdProc) ProcessError(serverErr string) (processedReply []byte, proc
 		return nil, replyErr
 	}
 	return reply, nil
-}
-
-// dataToProtobufStruct converts the returned packetd data into a protobuf
-func dataToProtobufStruct(info []map[string]interface{}) ([]*spb.Struct, error) {
-	// loop through the information and convert to a protobuf struct
-	var protobufStruct []*spb.Struct
-	for _, v := range info {
-		infoStruct, err := spb.NewStruct(v)
-
-		if err != nil {
-			return nil, errors.New("Error translating data to a protobuf: " + err.Error())
-		}
-
-		protobufStruct = append(protobufStruct, infoStruct)
-	}
-
-	return protobufStruct, nil
 }
