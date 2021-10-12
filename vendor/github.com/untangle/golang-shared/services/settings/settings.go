@@ -22,6 +22,11 @@ const settingsFile = "/etc/config/settings.json"
 const defaultsFile = "/etc/config/defaults.json"
 const currentFile = "/etc/config/current.json"
 
+var syncCallbacks []func()
+
+// OSForSyncSettings is the os sync-settings should use
+var OSForSyncSettings string = "openwrt"
+
 // Startup settings service
 func Startup() {
 }
@@ -29,6 +34,11 @@ func Startup() {
 // Shutdown settings service
 func Shutdown() {
 
+}
+
+// SetOS sets the os for settings to use
+func SetOS(newOS string) {
+	OSForSyncSettings = newOS
 }
 
 // GetCurrentSettings returns the current settings from the specified path
@@ -109,6 +119,12 @@ func SetSettingsFile(segments []string, value interface{}, filename string, forc
 	}
 
 	return map[string]interface{}{"result": "OK", "output": output}, err
+}
+
+// RegisterSyncCallback registers a callback. Will be called after sync-settings complete.
+func RegisterSyncCallback(callback func()) {
+	// Insert callback
+	syncCallbacks = append(syncCallbacks, callback)
 }
 
 // readSettingsFileJSON reads the settings file and return the corresponding JSON object
@@ -333,7 +349,7 @@ func getSettingsFromJSON(jsonObject interface{}, segments []string) (interface{}
 
 // runSyncSettings runs sync-settings on the specified filename
 func runSyncSettings(filename string, force bool) (string, error) {
-	cmd := exec.Command("/usr/bin/sync-settings", "-o", "openwrt", "-f", filename, "-v", "force="+strconv.FormatBool(force))
+	cmd := exec.Command("/usr/bin/sync-settings", "-o", OSForSyncSettings, "-f", filename, "-v", "force="+strconv.FormatBool(force))
 	outbytes, err := cmd.CombinedOutput()
 	output := string(outbytes)
 	if err != nil {
@@ -397,6 +413,10 @@ func syncAndSave(jsonObject map[string]interface{}, filename string, force bool)
 		return output, err
 	}
 
+	logger.Debug("Calling registered callbacks\n")
+	for _, cb := range syncCallbacks {
+		cb()
+	}
 	return output, nil
 }
 
@@ -425,9 +445,15 @@ func tempFile(dir, pattern string) (f *os.File, err error) {
 	return
 }
 
+// GetUIDOpenwrt returns the UID of the system
+func GetUIDOpenwrt() (string, error) {
+	return GetUID("/etc/config/uid")
+}
+
 // GetUID returns the UID of the system
-func GetUID() (string, error) {
-	file, err := os.Open("/etc/config/uid")
+// Replace this in the settings service in golang-shared
+func GetUID(uidFile string) (string, error) {
+	file, err := os.Open(uidFile)
 	if err != nil {
 		return "", err
 	}

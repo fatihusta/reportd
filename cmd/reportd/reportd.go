@@ -14,10 +14,12 @@ import (
 
 	zmq "github.com/pebbe/zmq4"
 	"github.com/untangle/golang-shared/services/logger"
+	"github.com/untangle/golang-shared/services/overseer"
 	"github.com/untangle/reportd/services/cloudreporting"
 	"github.com/untangle/reportd/services/localreporting"
 	"github.com/untangle/reportd/services/messenger"
 	"github.com/untangle/reportd/services/monitor"
+	"github.com/untangle/reportd/services/zmqd"
 )
 
 var shutdownFlag uint32
@@ -57,7 +59,8 @@ func startServices() {
 	localreporting.Startup()
 	cloudreporting.Startup()
 	messenger.Startup()
-
+	zmqd.Startup()
+	overseer.Startup()
 }
 
 func stopServices() {
@@ -69,6 +72,8 @@ func stopServices() {
 		monitor.Shutdown,
 		logger.Shutdown,
 		cloudreporting.Shutdown,
+		zmqd.Shutdown,
+		overseer.Shutdown,
 	}
 
 	for _, f := range shutdowns {

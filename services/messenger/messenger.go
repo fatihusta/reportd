@@ -27,7 +27,16 @@ func Startup() {
 		logger.Warn("Unable to setup ZMQ sockets.")
 	}
 
-	messengerRelation = monitor.CreateRoutineContextRelation(context.Background(), "messenger", []string{"message_router", "session_listener", "session_stats_listener", "interface_stats_listener"})
+	messengerRelation = monitor.CreateRoutineContextRelation(
+		context.Background(),
+		"messenger",
+		[]string{
+			"message_router",
+			"session_listener",
+			"session_stats_listener",
+			"interface_stats_listener",
+		},
+	)
 
 	go messageRouter(messengerRelation.Contexts["message_router"])
 
