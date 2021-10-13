@@ -16,6 +16,7 @@ github.com/untangle/golang-shared/structs/protocolbuffers/InterfaceStatsEvent
 github.com/untangle/golang-shared/structs/protocolbuffers/ReportdReply
 github.com/untangle/golang-shared/structs/protocolbuffers/SessionEvent
 github.com/untangle/golang-shared/structs/protocolbuffers/SessionStatsEvent
+github.com/untangle/golang-shared/structs/protocolbuffers/ThreatPreventionStatsEvent
 github.com/untangle/golang-shared/structs/protocolbuffers/ZMQRequest
 # google.golang.org/protobuf v1.25.0
 ## explicit

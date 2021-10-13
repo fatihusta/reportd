@@ -127,6 +127,34 @@ func sessStatsWriter(ctx context.Context, stmt *sql.Stmt) {
 	}
 }
 
+func threatPreventionStatsWriter(ctx context.Context, stmt *sql.Stmt) {
+	rtName := "threat_prevention_stats_processor"
+	monitor.RoutineStarted(rtName)
+	defer monitor.RoutineEnd(rtName)
+
+	for {
+		select {
+		case threatPreventionStats := <-threatPreventionStatsChannel:
+			if logger.IsTraceEnabled() {
+				logger.Trace("THREATPREVENTION_STATS: %v\n", threatPreventionStats)
+			}
+			_, err := stmt.Exec(
+				threatPreventionStats.TimeStamp,
+				threatPreventionStats.BlockedAddress,
+				threatPreventionStats.ClientAddress,
+				threatPreventionStats.ThreatLevel,
+			)
+			if err != nil {
+				logger.Err("Error while executing %s insert: %s\n", rtName, err)
+				continue
+			}
+		case <-ctx.Done():
+			logger.Info("Shutting down %s\n", rtName)
+			return
+		}
+	}
+}
+
 // sessWriter reads the Session event queue and writes the appropriate data
 func sessWriter(ctx context.Context, dbConn *sql.DB) {
 	var sessionBatch []pbe.SessionEvent
@@ -170,7 +198,7 @@ func sessWriter(ctx context.Context, dbConn *sql.DB) {
 				}
 			}
 		case <-retryBatch:
-			logger.Info("Retrying a batch...")
+			logger.Info("Retrying a batch...\n")
 
 			retry := false
 			batchCount := len(sessionBatch)

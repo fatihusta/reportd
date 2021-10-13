@@ -48,7 +48,7 @@ func setupDatabase(relations monitor.RoutineContextGroup) {
 	// Startup cleaner before writer queues
 	go tableCleaner(relations.Contexts["table_cleaner"], dbConnection, dbSizeLimit)
 
-	intfStatsStmt, sessStatsStmt, err := createPreparedStatements(dbConnection)
+	intfStatsStmt, sessStatsStmt, threatPrevStatsStmt, err := createPreparedStatements(dbConnection)
 
 	if err != nil {
 		logger.Err("Unable to build prepared statements: %s\n", err)
@@ -64,6 +64,9 @@ func setupDatabase(relations monitor.RoutineContextGroup) {
 
 	// Startup session queue writer
 	go sessWriter(relations.Contexts["session_processor"], dbConnection)
+
+	// Start up threat prevention stats writer
+	go threatPreventionStatsWriter(relations.Contexts["threat_prevention_stats_processor"], threatPrevStatsStmt)
 }
 
 // getSizeLimit uses the dbfilename and path to determine filesystem stats
@@ -127,23 +130,30 @@ func setPragmaSettings(conn *sqlite3.SQLiteConn) error {
 	return nil
 }
 
-func createPreparedStatements(dbConn *sql.DB) (*sql.Stmt, *sql.Stmt, error) {
+func createPreparedStatements(dbConn *sql.DB) (*sql.Stmt, *sql.Stmt, *sql.Stmt, error) {
 
 	// prepare the SQL used for interface_stats INSERT
 	interfaceStatsStatement, err := dbConn.Prepare(GetInterfaceStatsInsertQuery())
 	if err != nil {
 		logger.Err("Failed to prepare interface_stats database statement: %s\n", err.Error())
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// prepare the SQL used for session_stats INSERT
 	sessionStatsStatement, err := dbConn.Prepare(GetSessionStatsInsertQuery())
 	if err != nil {
 		logger.Err("Failed to prepare session_stats database statement: %s\n", err.Error())
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return interfaceStatsStatement, sessionStatsStatement, err
+	// prepare the SQL used for threat_prevention_stats INSERT
+	threatPreventionStatsStatement, err := dbConn.Prepare(GetThreatPreventionStatsInsertQuery())
+	if err != nil {
+		logger.Err("Failed to prepare threat_prevention_stats database statement: %s\n", err.Error())
+		return nil, nil, nil, err
+	}
+
+	return interfaceStatsStatement, sessionStatsStatement, threatPreventionStatsStatement, err
 }
 
 // makeSQLString makes a SQL string from a ReportEntry

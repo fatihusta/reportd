@@ -330,6 +330,16 @@ func createTables(dbConn *sql.DB) {
 		logger.Err("Failed to create table: %s\n", err.Error())
 	}
 
+	_, err = dbConn.Exec(`CREATE TABLE IF NOT EXISTS threatprevention_stats (
+		time_stamp bigint NOT NULL,
+		blocked_address text,
+		client_address text,
+		threat_level int)`)
+
+	if err != nil {
+		logger.Err("Failed to create table: %s\n", err.Error())
+	}
+
 	_, err = dbConn.Exec(`CREATE INDEX IF NOT EXISTS idx_iface_stats_time_stamp ON interface_stats (time_stamp DESC)`)
 	if err != nil {
 		logger.Err("Failed to create index: %s\n", err.Error())
@@ -567,4 +577,34 @@ func runSQL(dbConn *sql.DB, sqlStr string) string {
 	}
 
 	return result
+}
+
+// GetThreatpreventionStatsColumnList returns the list of columns in the threatprevention_stats table
+func GetThreatPreventionStatsColumnList() []string {
+	return []string{
+		"time_stamp",
+		"blocked_address",
+		"client_address",
+		"threat_level",
+	}
+}
+
+// GetThreatPreventionStatsInsertQuery generates the SQL for creating the prepared INSERT statement for the threatprevention_stats table
+func GetThreatPreventionStatsInsertQuery() string {
+	colList := GetThreatPreventionStatsColumnList()
+	sqlStr := "INSERT INTO threatprevention_stats ("
+	valStr := "("
+
+	for x := 0; x < len(colList); x++ {
+		if x != 0 {
+			sqlStr += ","
+			valStr += ","
+		}
+		sqlStr += colList[x]
+		valStr += "?"
+	}
+
+	sqlStr += ")"
+	valStr += ")"
+	return (sqlStr + " VALUES " + valStr)
 }
