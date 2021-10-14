@@ -70,7 +70,7 @@ func messageRouter(ctx context.Context) {
 			case "untangle:packetd:sessions":
 				evt := &se.SessionEvent{}
 				if err := proto.Unmarshal(msg[1], evt); err != nil {
-					logger.Warn("Unable to parse message: %s\n", err)
+					logger.Warn("Unable to parse Sessions message: %s\n", err)
 					continue
 				}
 				logger.Debug("Parsed %s message: %s\n", topic, evt)
@@ -79,7 +79,7 @@ func messageRouter(ctx context.Context) {
 			case "untangle:packetd:session-stats":
 				evt := &sse.SessionStatsEvent{}
 				if err := proto.Unmarshal(msg[1], evt); err != nil {
-					logger.Warn("Unable to parse message: %s\n", err)
+					logger.Warn("Unable to parse Session Stats message: %s\n", err)
 					continue
 				}
 				logger.Debug("Parsed %s message: %s\n", topic, evt)
@@ -88,7 +88,7 @@ func messageRouter(ctx context.Context) {
 			case "untangle:packetd:interface-stats":
 				evt := &ise.InterfaceStatsEvent{}
 				if err := proto.Unmarshal(msg[1], evt); err != nil {
-					logger.Warn("Unable to parse message: %s\n", err)
+					logger.Warn("Unable to parse Interface Stats message: %s\n", err)
 					continue
 				}
 				logger.Debug("Parsed %s message: %s\n", topic, evt)
@@ -101,7 +101,7 @@ func messageRouter(ctx context.Context) {
 			case "untangle:packetd:threat-prevention-stats":
 				evt := &tpse.ThreatPreventionStatsEvent{}
 				if err := proto.Unmarshal(msg[1], evt); err != nil {
-					logger.Warn("Unable to parse message: %s\n", err)
+					logger.Warn("Unable to parse Threat Prevention Stats message: %s\n", err)
 					continue
 				}
 				logger.Debug("Parsed %s message: %s\n", topic, evt)
