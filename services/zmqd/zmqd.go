@@ -53,7 +53,7 @@ func (p reportdProc) Process(request *zreq.ZMQRequest) (processedReply []byte, p
 	// Based on the Function, retrive the proper information
 	switch function {
 	case QueryCreate:
-		logger.Info("Handling QueryCreate\n")
+		logger.Debug("Handling QueryCreate\n")
 		queryString := request.Data
 		createdQuery, err := localreporting.CreateQuery(queryString)
 		if err != nil {
@@ -62,7 +62,7 @@ func (p reportdProc) Process(request *zreq.ZMQRequest) (processedReply []byte, p
 		reply.QueryCreate = createdQuery.ID
 
 	case QueryData:
-		logger.Info("Handling QueryData\n")
+		logger.Debug("Handling QueryData\n")
 		queryIDStr := request.Data
 		queryID, err := strconv.ParseUint(queryIDStr, 10, 64)
 		if err != nil {
@@ -75,7 +75,7 @@ func (p reportdProc) Process(request *zreq.ZMQRequest) (processedReply []byte, p
 		reply.QueryData = data
 
 	case QueryClose:
-		logger.Info("Handling QueryClose\n")
+		logger.Debug("Handling QueryClose\n")
 		queryIDStr := request.Data
 		queryID, err := strconv.ParseUint(queryIDStr, 10, 64)
 		if err != nil {

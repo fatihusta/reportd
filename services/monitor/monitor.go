@@ -53,7 +53,7 @@ func Startup() {
 func RoutineStarted(routineName string) {
 	defer activeRoutinesMutex.Unlock()
 	activeRoutinesMutex.Lock()
-	logger.Info("Start Routine called: %s \n", routineName)
+	logger.Debug("Start Routine called: %s \n", routineName)
 	routineInfoWatcher <- &routineInfo{Name: routineName, Action: start}
 	activeRoutines[routineName] = true
 }
@@ -63,7 +63,7 @@ func RoutineStarted(routineName string) {
 func RoutineEnd(routineName string) {
 	defer activeRoutinesMutex.Unlock()
 	activeRoutinesMutex.Lock()
-	logger.Info("Finish Routine called: %s \n", routineName)
+	logger.Debug("Finish Routine called: %s \n", routineName)
 	routineInfoWatcher <- &routineInfo{Name: routineName, Action: end}
 	_, ok := activeRoutines[routineName]
 	if ok {
@@ -76,7 +76,7 @@ func RoutineEnd(routineName string) {
 func RoutineError(routineName string) {
 	defer activeRoutinesMutex.Unlock()
 	activeRoutinesMutex.Lock()
-	logger.Info("Error Routine called: %s \n", routineName)
+	logger.Warn("Error Routine called: %s \n", routineName)
 	routineInfoWatcher <- &routineInfo{Name: routineName, Action: err}
 	_, ok := activeRoutines[routineName]
 	if ok {
